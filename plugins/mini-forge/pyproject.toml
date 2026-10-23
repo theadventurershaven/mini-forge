@@ -1,0 +1,38 @@
+[project]
+name = "mini-forge"
+version = "0.1.0"
+description = "Photo or description to a printable tabletop miniature: Meshy image-to-3D, local mesh checks, Bambu Studio slicing and support review."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1",
+    "python-dotenv>=1.0",
+    "httpx>=0.27",
+    "trimesh>=4.4",
+    "shapely>=2.1",
+    "numpy>=2.0",
+    "scipy>=1.14",
+    "rtree>=1.3",
+    "pillow>=10.0",
+    "fast-simplification>=0.1",
+    "manifold3d>=2.5",
+    "networkx>=3.0",
+    "paho-mqtt>=2.1.0",
+]
+
+[project.scripts]
+mini-forge = "mini_forge.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mini_forge"]
+
+[tool.ruff]
+line-length = 110

@@ -1,0 +1,13 @@
+{
+  "name": "mini-forge-marketplace",
+  "owner": {
+    "name": "The Adventurer's Haven"
+  },
+  "plugins": [
+    {
+      "name": "mini-forge",
+      "source": "./plugins/mini-forge",
+      "description": "Photo or description to a printable tabletop miniature: Meshy image-to-3D, mesh checks, Bambu Studio slicing and support review."
+    }
+  ]
+}

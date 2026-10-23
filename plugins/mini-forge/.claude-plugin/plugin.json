@@ -1,0 +1,15 @@
+{
+  "name": "mini-forge",
+  "description": "Photo or description to a printable tabletop miniature: reference picture via ChatGPT or Gemini, Meshy image-to-3D, local mesh checks and scaling, Bambu Studio slicing with tested support profiles, support review, optional Bambu LAN printing.",
+  "license": "MIT",
+  "keywords": [
+    "3d-printing",
+    "miniatures",
+    "meshy",
+    "bambu-lab",
+    "tabletop"
+  ],
+  "author": {
+    "name": "The Adventurer's Haven"
+  }
+}
