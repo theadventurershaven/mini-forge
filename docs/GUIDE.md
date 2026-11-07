@@ -59,8 +59,14 @@ meters, answer **No**.
 
 ### 5. Slicer settings
 
-Start from **0.12mm Fine** (0.4 mm nozzle) and switch the settings view to **Advanced**; most of
-these are hidden otherwise. Bambu's own defaults are made for brackets and boxes: supports one
+**Shortcut:** download the presets in [`bambu-presets/`](../bambu-presets/) and in Bambu Studio
+choose **File → Import → Import Configs**. They appear in the process list under User presets
+when a P1S or X1-series printer with the matching nozzle is selected. (On another Bambu model,
+set the values below by hand on its own 0.12mm profile and save it with the save icon next to
+the process list.)
+
+By hand: start from **0.12mm Fine** (0.4 mm nozzle) and switch the settings view to
+**Advanced**; most of these are hidden otherwise. Bambu's own defaults are made for brackets and boxes: supports one
 layer below the model and 0.35 mm beside it, so on a mini they fuse to the surface and wrap
 around hands and faces.
 
