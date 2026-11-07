@@ -106,6 +106,27 @@ GRID_MM = 0.5
 NEIGHBOUR_MM = 1.0
 
 
+BAND_MM = 0.2
+
+
+def merge_layer_bands(layers: dict[float, np.ndarray], band_mm: float = BAND_MM) -> dict[float, np.ndarray]:
+    """Union support points into fixed height bands.
+
+    With several objects on a plate, each object's support is printed on its own layer
+    heights, interleaved with the others'. Stacked layer by layer, every tree then appears
+    only on alternate slices and falls apart into fragments of a millimetre or two, so tall
+    trees passed the audit. Each band
+    holds every object's support layer in that height range; the band's Z is its highest layer.
+    """
+    bands: dict[int, list] = {}
+    tops: dict[int, float] = {}
+    for z, pts in layers.items():
+        k = int(z // band_mm)
+        bands.setdefault(k, []).append(pts)
+        tops[k] = max(tops.get(k, z), z)
+    return {tops[k]: np.vstack(v) for k, v in bands.items()}
+
+
 def trace_columns(layers: dict[float, np.ndarray]) -> list[Column]:
     """Measure connected support bodies in 3D.
 
@@ -117,6 +138,7 @@ def trace_columns(layers: dict[float, np.ndarray]) -> list[Column]:
     from scipy import ndimage
     if not layers:
         return []
+    layers = merge_layer_bands(layers)
     zs = sorted(layers)
     allp = np.vstack([layers[z] for z in zs])
     lo = allp.min(axis=0) - 4; hi = allp.max(axis=0) + 4
@@ -127,6 +149,8 @@ def trace_columns(layers: dict[float, np.ndarray]) -> list[Column]:
         idx = ((layers[z] - lo) / GRID_MM).astype(int)
         m = np.zeros((nx, ny), dtype=bool); m[idx[:, 0], idx[:, 1]] = True
         vol[i] = ndimage.binary_dilation(m, structure=disk)
+    # Join across one empty band: a sparse object's support can skip a band entirely.
+    vol = ndimage.binary_dilation(vol, structure=np.ones((3, 1, 1), dtype=bool))
     lab, n = ndimage.label(vol, structure=np.ones((3, 3, 3)))
     cols: list[Column] = []
     for k in range(1, n + 1):

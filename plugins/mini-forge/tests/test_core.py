@@ -135,3 +135,14 @@ def test_profiles_build_and_materialize(monkeypatch, tmp_path):
     assert process["curr_bed_type"] == "Textured PEI Plate"
     assert "Bambu Lab P1S 0.2 nozzle" in process["compatible_printers"]
     assert not any(k.startswith("_") for k in process)
+
+
+def test_support_audit_sees_trees_on_interleaved_layers(tmp_path):
+    """Two objects whose support layers alternate (independent support heights) must not split trees."""
+    header = "; tree_support_branch_diameter = 1.2\n; tree_support_wall_count = 1\n"
+    a = column(100, 100, 0.2, 25, step=0.24)
+    b = column(140, 100, 0.32, 25, step=0.24)
+    g = tmp_path / "two.gcode"
+    g.write_text(gcode({**a, **b}, header))
+    audit = audit_supports(g, 0.2)
+    assert audit.tallest_mm > 20 and not audit.passed
