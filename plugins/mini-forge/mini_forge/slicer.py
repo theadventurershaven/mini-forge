@@ -31,6 +31,7 @@ class SliceResult:
     layer_height: float | None
     objects: list[tuple[str, str]] = field(default_factory=list)
     elapsed_s: float = 0.0
+    painted: dict[str, int] = field(default_factory=dict)  # enforcer faces per mesh file
 
     def summary(self) -> str:
         t = self.estimated_time_s
@@ -52,8 +53,10 @@ def _time_to_seconds(text: str) -> int | None:
 
 
 def slice_plate(stls: list[Path], overlay: str, out_dir: Path, name: str, *, copies: int = 1,
-                changes: dict | None = None, settings: Settings | None = None) -> SliceResult:
-    """Arrange the models on one plate and slice. `changes` adds per-job setting overrides."""
+                changes: dict | None = None, settings: Settings | None = None,
+                enforcers: dict[Path, list] | None = None) -> SliceResult:
+    """Arrange the models on one plate and slice. `changes` adds per-job setting overrides;
+    `enforcers` maps an STL to points (in its own coordinates) painted as support enforcers."""
     settings = settings or Settings.load()
     if not settings.slicer_path.exists():
         raise SliceError(f"Bambu Studio not found at {settings.slicer_path}; set SLICER_PATH")
@@ -81,6 +84,17 @@ def slice_plate(stls: list[Path], overlay: str, out_dir: Path, name: str, *, cop
                 + [str(s) for s in stls], cwd=out_dir)
     if proc.returncode != 0 or not project.exists():
         raise SliceError(f"project export failed (exit {proc.returncode}):\n{proc.stdout[-1500:]}\n{proc.stderr[-1500:]}")
+    painted: dict[str, int] = {}
+    wanted = {str(Path(k).resolve()): v for k, v in (enforcers or {}).items() if v}
+    if wanted:
+        import trimesh
+
+        from .support_paint import mesh_files_by_stl, paint_plate
+        faces = {str(s): len(trimesh.load(s, force="mesh").faces) for s in stls}
+        objs = {f: {"points": wanted[s]} for f, s in mesh_files_by_stl(project, faces).items() if s in wanted}
+        tmp = project.with_name(project.stem + ".painting.3mf")
+        painted = paint_plate(project, tmp, objs)
+        tmp.replace(project)
     proc = _run(base + ["--slice", "0", "--min-save", "--export-3mf", package.name, str(project)], cwd=out_dir)
     result_file = out_dir / "result.json"
     result = json.loads(result_file.read_text()) if result_file.exists() else {}
@@ -115,7 +129,7 @@ def slice_plate(stls: list[Path], overlay: str, out_dir: Path, name: str, *, cop
         overlay=Path(overlay).stem if str(overlay).endswith(".json") else str(overlay), nozzle=nozzle, package=package, project=project, gcode=gcode, preview_png=png,
         estimated_time_s=_time_to_seconds(m.group(1)) if m else None,
         filament_g=float(grams.group(1)) if grams else None,
-        layer_height=float(layer.group(1)) if layer else None, objects=objects, elapsed_s=time.time() - t0)
+        layer_height=float(layer.group(1)) if layer else None, objects=objects, elapsed_s=time.time() - t0, painted=painted)
 
 
 def bed_temperature(gcode_text: str) -> list[str]:

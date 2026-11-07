@@ -1,11 +1,11 @@
 ---
 name: mini-forge
-description: Turn a photo, card or description into a printable tabletop miniature - reference picture via ChatGPT/Gemini, Meshy image-to-3D, mesh checks and scaling, Bambu Studio slicing with tested support profiles, support and mid-air-feature review, optional Bambu LAN printing. Use when the user wants to make, generate or 3D print a miniature or figurine.
+description: Turn a one-line description, sketch or photo into a printable tabletop miniature - reference picture via Gemini/ChatGPT (free) or Meshy, Meshy image-to-3D, mesh checks and scaling, Bambu Studio slicing with tested support profiles, support and mid-air-feature review, optional Bambu LAN printing. Use when the user wants to make, generate or 3D print a miniature or figurine.
 argument-hint: "[what to make, or a photo]"
 allowed-tools: Bash(uv run --project ${CLAUDE_PLUGIN_ROOT} mini-forge *)
 ---
 
-# mini-forge: photo or description in, printable miniature out
+# mini-forge: description or picture in, printable miniature out
 
 Run every command as `uv run --project ${CLAUDE_PLUGIN_ROOT} mini-forge <command>` (written
 `mini-forge` below). Jobs live in `./minis/<job>/` under the current folder. Show the user the
@@ -13,8 +13,12 @@ renders and reports at each review point; keep messages short.
 
 ## Rules
 
-- **Money:** a Meshy conversion costs credits (about 25 at 4k). Show the estimate from
-  `mini-forge convert` (without `--yes`) and get the user's yes before re-running with `--yes`.
+- **Whose design:** only the user's own characters, things they have rights to, or designs used
+  with the owner's permission. If the request is to copy a commercial character or a bought
+  miniature, say so plainly and suggest an original take instead. Never put an artist's name or
+  a franchise in a prompt.
+- **Money:** a Meshy conversion costs credits (about 25 at 4k); a Meshy picture about 9. Show the
+  estimate (each paid command prints it without `--yes`) and get the user's yes before re-running with `--yes`.
   Never buy credits. If a run was interrupted, `convert` recovers the existing task instead of
   paying again.
 - **Printing:** only with the user's explicit yes in this conversation **and** their statement
@@ -27,6 +31,10 @@ renders and reports at each review point; keep messages short.
   its 1.0 mm minimum flags relief that a 0.2 mm nozzle prints fine.
 - **Gates are not flags to turn off.** If the support audit or island check fails, change the
   model or the supports, never the check.
+- **Supports:** never turn off "critical regions only" and never use `tree_strong`; both have
+  produced masses of unremovable support, and `slice` refuses them. An uncovered start gets a
+  painted enforcer (automatic) or a geometry fix. Supports allowed to root on the base top
+  (`--set support_on_build_plate_only=0`) can scar the base: ask the user before using it.
 
 ## 0. Setup (once)
 
@@ -41,12 +49,20 @@ renders and reports at each review point; keep messages short.
 
 ## 1. Job and reference picture
 
-1. `mini-forge new <job> --subject "..." [--photo PATH]`.
-2. Fill the first prompt from [reference-prompts.md](reference-prompts.md) and give it to the
-   user to paste into ChatGPT or Gemini with their image. Ask them to return the picture.
+1. `mini-forge new <job> --subject "..." [--photo PATH]`. With only a description, ask for a
+   little more if it is thin: build, clothing, what it holds and how, pose.
+2. Make the reference picture, using [reference-prompts.md](reference-prompts.md) ("from a
+   description" or "from an image"):
+   - **Free (default):** fill the full prompt and give it to the user to paste into Gemini
+     ("Pro" model) or ChatGPT, with their image if any. Ask them to return the picture and save
+     it into the job's `reference/` folder.
+   - **Automatic (paid, if the user prefers):** write the short prompt to
+     `minis/<job>/reference/prompt.txt`, run `mini-forge picture <job> --prompt-file ...` for the
+     estimate, then add `--yes` after their yes.
 3. Review the picture at full size (checklist in reference-prompts.md). For each hand, claw,
-   cloth corner or weapon tip that would start in mid-air, give the user the matching follow-up
-   edit. Accept the picture when everything touches something.
+   cloth corner, tail or weapon tip that would start in mid-air or hang below what it belongs to,
+   send the matching follow-up edit (by hand in the same chat, or `picture --edit`). Accept the
+   picture when everything touches something.
 
 ## 2. Meshy conversion
 
@@ -62,9 +78,11 @@ add `--yes`. It saves `original.glb`, the free analysis and the ledger in `logs/
    a heroic human, about 25 for a dwarf, smaller for small creatures; for animals choose a
    size that reads right next to human minis and say what you chose.
 3. Check `model-views.png`, the contacts on the base (all inside the rim) and the screening check.
-4. `mini-forge islands <job>`: anything large or more than 3 mm from the rest of its layer is a
-   feature that will likely fail. Fix it in the reference picture and reconvert (asking about
-   the cost), or ask the user.
+4. `mini-forge islands <job>`: lists where features start in mid-air (these get painted
+   supports at slicing) and **risky free columns**: a feature that starts below the part it
+   hangs from and grows upward on its own support tip before joining the body. Those broke off
+   on real prints even when fully supported. Fix them in the reference picture and reconvert
+   (asking about the cost), or show them to the user and let them accept the risk.
 
 ## 4. Slice and review
 
@@ -73,14 +91,18 @@ each with notes on how well it has been tested):
 - `detail-0.2-stout` (0.2 mm nozzle, default): stout trees from the plate; best tested.
 - `detail-0.2-slim`: finer trees, only when supports stay short (the audit enforces it).
 - `standard-0.4` (0.4 mm nozzle, default): faster prints for creatures and rank-and-file.
+- `creature-0.4-stout` (0.4 mm): stout two-wall trees that may root on the base top, for high,
+  far-reaching overhangs (tentacles, raised claws). Ask the user first; thick trees around small
+  faces and hands are harder to remove.
 
-It prints the estimate, the bed temperatures (must match the plate), the **support audit**
-(tall slender trees fall over mid-print) and the **island check** (support coverage under each
-feature that starts in air). Report anything 3+ mm out with under 20% support as a blocker:
-try `--set support_on_build_plate_only=0` (supports may then touch the base or model and leave
-marks; tell the user and let them choose), or fix the geometry. `READY` means both passed.
-Show the user the preview, time, grams and any small unsupported islands (they may droop
-slightly).
+Before slicing it paints support enforcers at the mid-air starts `islands` found (`--no-paint`
+to skip). Afterwards it prints the estimate, the bed temperatures (must match the plate), the
+**support audit** (tall slender trees fall over mid-print; too many roots on the base tops) and the
+**island check** (support coverage under each feature that starts in air). Anything 3+ mm out
+with under 20% support is a blocker: fix the geometry, or ask the user whether supports may root
+on the base top (`--set support_on_build_plate_only=0`). Risky free columns block until the user
+accepts them (`--accept-free-columns`). `READY` means all of it passed. Show the user the
+preview, time, grams and any small unsupported islands (they may droop slightly).
 
 ## 5. Print
 

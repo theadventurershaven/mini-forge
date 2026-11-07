@@ -28,6 +28,19 @@ SLIM_LEAN_LIMIT_DEG = {0.2: 35.0, 0.4: 45.0}
 STOUT_LEAN_LIMIT_DEG = {0.2: 45.0, 0.4: 50.0}
 LEAN_MIN_HEIGHT_MM = 8.0
 
+# Settings refused outright, from printed results:
+# - tree_strong merged the trees into solid walls rooted on the base tops; they could not be
+#   removed without breaking the figures. tree_slim (every successful print) gives mostly
+#   plate-rooted trunks with a few base-rooted tips.
+# - Turning "critical regions only" off multiplied supports every time it was tried (tripled on
+#   one creature, moved half the roots onto the bases on another) without fixing the feature it
+#   was meant for. Paint an enforcer at the uncovered start instead (support_paint.py).
+REFUSED_STYLES = {"tree_strong": "merges trees into solid walls on the base tops that cannot be removed cleanly"}
+CRITICAL_ONLY_OFF = "multiplies supports everywhere; paint an enforcer at the uncovered start instead"
+# Share of support roots that start on the base tops instead of the plate. Printed slices the
+# owner liked measured 0.12-0.13; the tree_strong plate with unremovable supports measured 1.0.
+BASE_ROOT_SHARE_LIMIT = 0.4
+
 
 @dataclass
 class Column:
@@ -67,6 +80,10 @@ class SupportAudit:
     passed: bool
     reasons: list[str] = field(default_factory=list)
     worst: list[dict] = field(default_factory=list)
+    support_style: str | None = None
+    plate_root_mm2: float = 0.0
+    base_root_mm2: float = 0.0
+    base_root_share: float = 0.0
 
 
 def _header(g: str, key: str) -> str | None:
@@ -167,7 +184,20 @@ def trace_columns(layers: dict[float, np.ndarray]) -> list[Column]:
     return cols
 
 
-def audit_supports(gcode_path: Path, nozzle_mm: float) -> SupportAudit:
+def support_roots(layers: dict[float, np.ndarray], base_top_mm: float) -> tuple[float, float]:
+    """Area (mm2) of support standing on the plate below the base top, and of support that
+    starts on the base tops: present just above the base but not near a plate trunk."""
+    def cells(z0: float, z1: float) -> set:
+        pts = [v for z, v in layers.items() if z0 <= z <= z1 and len(v)]
+        return {tuple(c) for c in np.round(np.vstack(pts) / GRID_MM).astype(int)} if pts else set()
+    low = cells(base_top_mm * 0.45, base_top_mm * 0.65)
+    high = cells(base_top_mm + 0.1, base_top_mm + 0.6)
+    grown = {(a + i, b + j) for a, b in low for i in range(-2, 3) for j in range(-2, 3)}
+    cell = GRID_MM * GRID_MM
+    return len(low) * cell, len(high - grown) * cell
+
+
+def audit_supports(gcode_path: Path, nozzle_mm: float, base_top_mm: float = 2.0) -> SupportAudit:
     g = Path(gcode_path).read_text()
     branch = _header(g, "tree_support_branch_diameter")
     walls = _header(g, "tree_support_wall_count")
@@ -177,8 +207,19 @@ def audit_supports(gcode_path: Path, nozzle_mm: float) -> SupportAudit:
     stout = bool(branch_f and branch_f >= 1.6 and walls_i is not None and walls_i >= 2)
     limit = (STOUT_HEIGHT_LIMIT_MM if stout else SLIM_HEIGHT_LIMIT_MM).get(nozzle_mm, 18.0)
     lean_limit = (STOUT_LEAN_LIMIT_DEG if stout else SLIM_LEAN_LIMIT_DEG).get(nozzle_mm, 35.0)
-    cols = [c for c in trace_columns(support_points_by_layer(g)) if c.layers >= 5]
+    layers = support_points_by_layer(g)
+    cols = [c for c in trace_columns(layers) if c.layers >= 5]
     reasons = []
+    style = _header(g, "support_style")
+    if style in REFUSED_STYLES:
+        reasons.append(f"support_style {style} is refused: {REFUSED_STYLES[style]}")
+    if _header(g, "support_critical_regions_only") == "0":
+        reasons.append(f"support_critical_regions_only off is refused: {CRITICAL_ONLY_OFF}")
+    plate_a, base_a = support_roots(layers, base_top_mm)
+    share = base_a / (plate_a + base_a) if plate_a + base_a >= 2.0 else 0.0
+    if share > BASE_ROOT_SHARE_LIMIT:
+        reasons.append(f"{share:.0%} of support roots start on the base tops ({base_a:.1f} mm2 vs {plate_a:.1f} mm2 on the plate); "
+                       f"limit {BASE_ROOT_SHARE_LIMIT:.0%}: these are hard to remove and scar the base")
     tallest = max((c.height for c in cols), default=0.0)
     max_lean = max((c.lean_deg for c in cols), default=0.0)
     for c in cols:
@@ -193,11 +234,12 @@ def audit_supports(gcode_path: Path, nozzle_mm: float) -> SupportAudit:
         max_lean_deg=round(max_lean, 1), limit_mm=limit, passed=not reasons, reasons=reasons,
         worst=[{"height_mm": round(c.height, 2), "lean_deg": round(c.lean_deg, 1), "lean_mm": round(c.lean_mm, 1), "base_z": c.base_z, "top_z": c.top_z,
                 "base_xy": [round(v, 1) for v in c.base_xy], "min_area_mm2": round(c.min_area_mm2, 1), "min_area_z": c.min_area_z} for c in worst],
+        support_style=style, plate_root_mm2=round(plate_a, 1), base_root_mm2=round(base_a, 1), base_root_share=round(share, 2),
     )
 
 
-def write_audit(gcode_path: Path, nozzle_mm: float, out: Path | None = None) -> SupportAudit:
-    a = audit_supports(gcode_path, nozzle_mm)
+def write_audit(gcode_path: Path, nozzle_mm: float, out: Path | None = None, base_top_mm: float = 2.0) -> SupportAudit:
+    a = audit_supports(gcode_path, nozzle_mm, base_top_mm)
     out = out or Path(gcode_path).with_name("support-audit.json")
     out.write_text(json.dumps(asdict(a), indent=2) + "\n")
     return a

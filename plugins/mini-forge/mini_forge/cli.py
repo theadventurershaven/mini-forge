@@ -1,6 +1,6 @@
 """mini-forge command line. Each job lives in ./minis/<job>/ (override with MINI_FORGE_JOBS).
 
-Order of work: setup -> new -> convert -> inspect -> scale -> islands -> slice -> print (optional).
+Order of work: setup -> new -> [picture] -> convert -> inspect -> scale -> islands -> slice -> print (optional).
 Paid Meshy calls and print starts need --yes; the skill asks the user before passing it.
 """
 
@@ -106,11 +106,14 @@ def doctor() -> None:
         nonlocal ok
         ok &= good
         click.echo(f"[{'ok' if good else '!!'}] {text}")
-    line(s.slicer_path.exists(), f"Bambu Studio at {s.slicer_path}")
+    line(s.slicer_path.exists(), f"Bambu Studio at {s.slicer_path}" if s.slicer_path.exists() else
+         f"Bambu Studio not found at {s.slicer_path}: install it from bambulab.com, or run setup --slicer-path")
     line(system_profile_dir(s.slicer_path).is_dir(), "Bambu system profiles found")
     built = sorted(p.name for p in profile_dir().rglob("*.json")) if profile_dir().exists() else []
-    line(bool(built), f"{len(built)} generated profiles in {profile_dir()}")
-    line(bool(s.meshy_api_key), "MESHY_API_KEY set" if s.meshy_api_key else f"MESHY_API_KEY missing in {config_file()}")
+    line(bool(built), f"{len(built)} generated profiles in {profile_dir()}" if built else
+         "no profiles built yet: run `mini-forge setup` with your printer, nozzle, plate and filament")
+    line(bool(s.meshy_api_key), "MESHY_API_KEY set" if s.meshy_api_key else
+         f"MESHY_API_KEY missing: create an API key in your Meshy account (API settings) and paste it into {config_file()}")
     if s.meshy_api_key:
         try:
             import tempfile
@@ -158,6 +161,44 @@ def new(job, subject, photo) -> None:
         (d / "reference" / f"source{src.suffix.lower()}").write_bytes(src.read_bytes())
     update_job(d, job=job, subject=subject, created_utc=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
     click.echo(d)
+
+
+@main.command()
+@click.argument("job")
+@click.option("--prompt-file", type=click.Path(exists=True, dir_okay=False), required=True,
+              help="Short prompt (600 characters at most), e.g. the Meshy prompt from reference-prompts.md.")
+@click.option("--edit", type=click.Path(exists=True, dir_okay=False),
+              help="Edit this earlier picture instead of starting from the job's photo (a follow-up fix).")
+@click.option("--model", default="nano-banana-pro", show_default=True, help="Meshy image model.")
+@click.option("--yes", is_flag=True, help="Spend the credits. Without it, only the estimate is shown.")
+def picture(job, prompt_file, edit, model, yes) -> None:
+    """Optional: make the reference picture with Meshy instead of pasting the prompt into ChatGPT/Gemini.
+
+    Uses image-to-image when there is a source photo (or --edit), text-to-image otherwise.
+    Each picture or edit is a paid call (about 9 credits with nano-banana-pro)."""
+    from .meshy import IMAGE_TO_IMAGE_PRICE, TEXT_TO_IMAGE_PRICE, Ledger, Meshy, image_urls
+    d = job_dir(job)
+    prompt = Path(prompt_file).read_text(encoding="utf-8").strip()
+    if len(prompt) > 600:
+        raise click.ClickException(f"the prompt is {len(prompt)} characters; Meshy's limit is 600")
+    sources = [Path(edit)] if edit else sorted((d / "reference").glob("source.*"))
+    est = (IMAGE_TO_IMAGE_PRICE if sources else TEXT_TO_IMAGE_PRICE).get(model, 12)
+    client = Meshy(Ledger(d))
+    if not yes:
+        kind = f"image-to-image from {sources[0].name}" if sources else "text-to-image"
+        click.echo(f"{kind}: estimated {est} Meshy credits (balance {client.balance()}). Re-run with --yes to spend them.")
+        return
+    if sources:
+        result = client.image_to_image(prompt, [client.image_to_data_uri(sources[0])], ai_model=model)
+    else:
+        result = client.text_to_image(prompt, ai_model=model)
+    urls = image_urls(result)
+    if not urls:
+        raise click.ClickException(f"Meshy returned no picture (keys: {sorted(result)})")
+    n = len(list((d / "reference").glob("attempt-*-meshy.png"))) + 1
+    dest = client.download(urls[0], d / "reference" / f"attempt-{n}-meshy.png")
+    (d / "reference" / f"attempt-{n}-prompt.txt").write_text(prompt + "\n", encoding="utf-8")
+    click.echo(f"saved {dest} | credits spent on this job: {client.ledger.total}")
 
 
 @main.command()
@@ -268,6 +309,16 @@ def islands(job, from_z) -> None:
     for r in sorted(found, key=lambda r: r["start_z"]):
         click.echo(f"  z {r['start_z']:6.2f}  area {r['area_mm2']:6.3f} mm2  at {r['xy']}  {r['gap_to_rest_mm']} mm from the rest  joins {r['joined_z']}")
     click.echo(f"{len(found)} islands; {len(far)} large or more than 3 mm out (fix these in the picture or mesh first)")
+    from .free_columns import free_columns
+    cols = [asdict(c) for c in free_columns(d / "model.stl", base_top_mm=base_top) if c.height_mm >= 0.5]
+    write_json(d / "free-columns.json", cols)
+    risky = [c for c in cols if c["risky"]]
+    for c in risky:
+        click.echo(f"  RISKY free column from z {c['start_z']:.2f} at {c['xy']}: {c['height_mm']} mm before it joins the body, "
+                   f"thinnest {c['min_area_mm2']} mm2, joins through {c['join_area_mm2']} mm2")
+    click.echo(f"{len(risky)} risky free column(s): a feature that starts below the part it hangs from and grows upward on its "
+               "own support tip. Supports do not fix these; tuck the feature against the body in the picture and reconvert, "
+               "or accept the risk with the user (slice --accept-free-columns)." if risky else "no risky free columns")
 
 
 # ---- slice --------------------------------------------------------------------------------
@@ -287,8 +338,11 @@ def _parse_set(values: tuple[str, ...]) -> dict:
 @click.option("--copies", type=int, default=1, show_default=True)
 @click.option("--set", "sets", multiple=True, help="Extra slicer setting for this job, key=value (repeatable).")
 @click.option("--name", default=None, help="Output name (default: the job name).")
-def slice_cmd(job, overlay, copies, sets, name) -> None:
-    """Slice, then run the support audit and the island landing check on the G-code."""
+@click.option("--no-paint", is_flag=True, help="Do not paint support enforcers at the islands found by `islands`.")
+@click.option("--accept-free-columns", is_flag=True, help="The user accepted the risky free columns `islands` reported.")
+def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -> None:
+    """Slice (painting support enforcers at mid-air starts), then run the support audit and the
+    island landing check on the G-code."""
     from .islands import landing_coverage, top_gap_from_gcode
     from .profiles import overlay_nozzle, overlays
     from .slicer import bed_temperature, slice_plate
@@ -299,21 +353,43 @@ def slice_cmd(job, overlay, copies, sets, name) -> None:
     ov = overlays().get(overlay)
     if ov and overlay_nozzle(ov) != s.nozzle:
         raise click.ClickException(f"{overlay} is for a {overlay_nozzle(ov):g} mm nozzle but NOZZLE is {s.nozzle:g}")
+    changes = _parse_set(sets)
+    if changes.get("support_critical_regions_only") in ("0", "false"):
+        raise click.ClickException("support_critical_regions_only=0 is refused: it multiplies supports everywhere. "
+                                   "Uncovered starts get painted enforcers instead (on by default).")
+    if changes.get("support_style") == "tree_strong":
+        raise click.ClickException("support_style=tree_strong is refused: it fuses trees into walls on the base tops.")
+    from .support_paint import enforcer_points
+    islands_file = d / "islands.json"
+    if not islands_file.exists():
+        raise click.ClickException(f"run `mini-forge islands {job}` first")
+    points = [] if no_paint else enforcer_points(json.loads(islands_file.read_text(encoding="utf-8")))
+    cols_file = d / "free-columns.json"
+    cols = json.loads(cols_file.read_text(encoding="utf-8")) if cols_file.exists() else []
+    risky_cols = [c for c in cols if c.get("risky")]
     name = name or job
     out = d / f"slice-{name}"
-    r = slice_plate([d / "model.stl"], overlay, out, name, copies=copies, changes=_parse_set(sets), settings=s)
-    audit = write_audit(r.gcode, r.nozzle, out / "support-audit.json")
+    r = slice_plate([d / "model.stl"], overlay, out, name, copies=copies, changes=changes, settings=s,
+                    enforcers={d / "model.stl": points})
     base_top = read_json(d / "scale.json").get("base_mm", [25, 2])[1]
+    audit = write_audit(r.gcode, r.nozzle, out / "support-audit.json", base_top_mm=base_top)
     cover = landing_coverage(r.gcode, top_gap_from_gcode(r.gcode), base_top + 0.3)
     write_json(out / "island-coverage.json", cover)
     beds = bed_temperature(r.gcode.read_text(encoding="utf-8", errors="replace")[:200000])
-    report = {"overlay": overlay, "changes": _parse_set(sets), "copies": copies, "package": r.package.name,
+    report = {"overlay": overlay, "changes": changes, "copies": copies, "package": r.package.name,
+              "enforcer_points": points, "painted_faces": r.painted,
+              "risky_free_columns": risky_cols, "free_columns_accepted": bool(accept_free_columns and risky_cols),
               "estimate_s": r.estimated_time_s, "filament_g": r.filament_g, "layer_mm": r.layer_height, "nozzle": r.nozzle,
               "bed_temperatures": beds, "support_audit_passed": audit.passed, "support_audit_reasons": audit.reasons,
               "island_check_passed": cover["passed"], "risky_islands": cover["risky"],
-              "ready": audit.passed and cover["passed"]}
+              "ready": audit.passed and cover["passed"] and (not risky_cols or accept_free_columns)}
     write_json(out / "slice-report.json", report)
     click.echo(r.summary())
+    if points:
+        click.echo(f"painted support enforcers at {len(points)} mid-air start(s): {sum(r.painted.values())} faces")
+    if risky_cols:
+        click.echo(f"risky free columns: {len(risky_cols)} " + ("(accepted by the user)" if accept_free_columns else
+                   "(NOT accepted: fix the picture, or pass --accept-free-columns after the user agrees)"))
     click.echo(f"bed temperature commands: {beds} (check they match your plate)")
     click.echo(f"support audit: {'PASS' if audit.passed else 'FAIL'} ({audit.columns} columns, tallest {audit.tallest_mm} mm)"
                + "".join(f"\n  - {x}" for x in audit.reasons))

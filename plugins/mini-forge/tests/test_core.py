@@ -146,3 +146,69 @@ def test_support_audit_sees_trees_on_interleaved_layers(tmp_path):
     g.write_text(gcode({**a, **b}, header))
     audit = audit_supports(g, 0.2)
     assert audit.tallest_mm > 20 and not audit.passed
+
+
+def test_support_audit_refuses_tree_strong_and_critical_only_off(tmp_path):
+    body = gcode(column(100, 100, 0.2, 10))
+    for header, words in (("; support_style = tree_strong\n", "tree_strong"),
+                          ("; support_critical_regions_only = 0\n", "critical_regions_only")):
+        g = tmp_path / "g.gcode"
+        g.write_text(header + body)
+        a = audit_supports(g, 0.4)
+        assert not a.passed and any(words in r for r in a.reasons)
+    ok = tmp_path / "ok.gcode"
+    ok.write_text("; support_style = tree_slim\n; support_critical_regions_only = 1\n" + body)
+    assert audit_supports(ok, 0.4).passed
+
+
+def test_support_audit_refuses_supports_rooted_on_the_base(tmp_path):
+    def patch(z0, z1):  # a 4 x 4 mm block of support lines, like a trunk's footprint
+        return {round(z, 2): [(98 + i * 0.5, 98 + j * 0.5, 98.4 + i * 0.5, 98 + j * 0.5, "Support")
+                              for i in range(8) for j in range(8)] for z in np.arange(z0, z1, 0.2)}
+    on_base, plate = patch(2.2, 10), patch(0.2, 10)
+    g = tmp_path / "base.gcode"
+    g.write_text(gcode(on_base))
+    a = audit_supports(g, 0.4, base_top_mm=2.0)
+    assert a.base_root_share == 1.0 and not a.passed
+    g.write_text(gcode(plate))
+    assert audit_supports(g, 0.4, base_top_mm=2.0).base_root_share == 0.0
+
+
+def test_free_columns_flags_a_hanging_feature(tmp_path):
+    from mini_forge.free_columns import free_columns
+    base = trimesh.creation.cylinder(radius=8, height=2, sections=48); base.apply_translation([0, 0, 1])
+    body = trimesh.creation.cylinder(radius=2.5, height=20, sections=48); body.apply_translation([0, 0, 11.9])
+    arm = trimesh.creation.box(extents=[6, 2, 1.5]); arm.apply_translation([4.5, 0, 16])
+    hang = trimesh.creation.cylinder(radius=0.4, height=7.5, sections=24); hang.apply_translation([7, 0, 12])
+    m = trimesh.boolean.union([base, body, arm, hang], engine="manifold")
+    stl = tmp_path / "m.stl"; m.export(stl)
+    cols = free_columns(stl, layer_mm=0.1)
+    risky = [c for c in cols if c.risky]
+    assert len(risky) == 1 and risky[0].start_z == pytest.approx(8.25, abs=0.15) and risky[0].xy[0] == pytest.approx(7, abs=0.2)
+    upright = trimesh.boolean.union([base, body], engine="manifold"); upright.export(stl)
+    assert not any(c.risky for c in free_columns(stl, layer_mm=0.1))
+
+
+def test_enforcer_points_and_painting(tmp_path):
+    from mini_forge.support_paint import enforcer_points, mesh_files_by_stl, paint_plate
+    isl = [{"start_z": 8.0, "area_mm2": 0.4, "xy": [7, 0], "gap_to_rest_mm": 4.0},
+           {"start_z": 5.0, "area_mm2": 0.4, "xy": [1, 0], "gap_to_rest_mm": 0.3},
+           {"start_z": 6.0, "area_mm2": 0.001, "xy": [3, 0], "gap_to_rest_mm": 5.0}]
+    assert enforcer_points(isl) == [(7, 0, 8.1)]
+    # A one-object project: a downward-facing triangle at z 8 and an upward one at z 8 (object placed at x+100).
+    verts = [(6, -1, 8), (8, -1, 8), (7, 1, 8)]
+    obj = ("<model><resources><object id=\"1\"><mesh><vertices>"
+           + "".join(f'<vertex x="{x - 7}" y="{y}" z="{z}"/>' for x, y, z in verts)
+           + '</vertices><triangles><triangle v1="0" v2="2" v3="1"/><triangle v1="0" v2="1" v3="2"/></triangles></mesh></object></resources></model>')
+    top = ('<model><resources><object id="2"><components><component p:path="/3D/Objects/object_1.model" objectid="1" '
+           'transform="1 0 0 0 1 0 0 0 1 7 0 0"/></components></object></resources></model>')
+    proj = tmp_path / "p.3mf"
+    with zipfile.ZipFile(proj, "w") as z:
+        z.writestr("3D/3dmodel.model", top)
+        z.writestr("3D/Objects/object_1.model", obj)
+    assert mesh_files_by_stl(proj, {"a.stl": 2, "b.stl": 500}) == {"3D/Objects/object_1.model": "a.stl"}
+    out = tmp_path / "painted.3mf"
+    counts = paint_plate(proj, out, {"3D/Objects/object_1.model": {"points": [(7, 0, 8.1)]}})
+    assert counts == {"3D/Objects/object_1.model": 1}
+    text = zipfile.ZipFile(out).read("3D/Objects/object_1.model").decode()
+    assert text.count('paint_supports="4"') == 1 and '<triangle v1="0" v2="2" v3="1" paint_supports="4"/>' in text

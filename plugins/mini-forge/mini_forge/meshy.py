@@ -26,6 +26,8 @@ I23D = "/openapi/v1/image-to-3d"
 # List prices for estimates only (check https://docs.meshy.ai before relying on them).
 PRICE = {"image-to-3d": 20, "high-resolution": 5, "analyze": 0, "repair": 10}
 IMAGE_TO_IMAGE_PRICE = {"nano-banana": 3, "nano-banana-2": 6, "nano-banana-pro": 9, "gpt-image-2": 12}
+TEXT_TO_IMAGE_PRICE = {**IMAGE_TO_IMAGE_PRICE, "gpt-image-2": 9}
+T2I, I2I = "/openapi/v1/text-to-image", "/openapi/v1/image-to-image"
 
 
 class MeshyError(RuntimeError):
@@ -181,7 +183,14 @@ class Meshy:
         if not 2 <= len(prompt) <= 600:
             raise MeshyError(f"image-to-image prompt must be 2-600 characters, got {len(prompt)}")
         body = {"ai_model": ai_model, "prompt": prompt, "reference_image_urls": references}
-        return self._charged("image-to-image", "/openapi/v1/image-to-image", body, IMAGE_TO_IMAGE_PRICE.get(ai_model, 12))
+        return self._charged("image-to-image", I2I, body, IMAGE_TO_IMAGE_PRICE.get(ai_model, 12))
+
+    def text_to_image(self, prompt: str, ai_model: str = "nano-banana-pro") -> dict:
+        """A picture from a description alone (square). Prompt limit is 600 characters."""
+        if not 2 <= len(prompt) <= 600:
+            raise MeshyError(f"text-to-image prompt must be 2-600 characters, got {len(prompt)}")
+        body = {"ai_model": ai_model, "prompt": prompt, "aspect_ratio": "1:1"}
+        return self._charged("text-to-image", T2I, body, TEXT_TO_IMAGE_PRICE.get(ai_model, 12))
 
     def analyze(self, input_task_id: str, printer_type: str | None = "fdm",
                 print_height_mm: float | None = None) -> dict:
@@ -197,6 +206,17 @@ class Meshy:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def image_urls(result: dict) -> list[str]:
+    """Picture URLs from a finished text-to-image or image-to-image task."""
+    for key in ("image_urls", "image_url", "images"):
+        v = result.get(key)
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list) and v:
+            return [x if isinstance(x, str) else x.get("image_url") or x.get("url") for x in v]
+    return []
 
 
 def thin_walls(analyze_result: dict) -> Any:

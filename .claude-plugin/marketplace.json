@@ -1,5 +1,6 @@
 {
   "name": "mini-forge-marketplace",
+  "description": "Claude Code plugin: description, sketch or photo to a printable tabletop miniature on a Bambu Lab printer.",
   "owner": {
     "name": "The Adventurer's Haven"
   },
@@ -7,7 +8,7 @@
     {
       "name": "mini-forge",
       "source": "./plugins/mini-forge",
-      "description": "Photo or description to a printable tabletop miniature: Meshy image-to-3D, mesh checks, Bambu Studio slicing and support review."
+      "description": "Description, sketch or photo to a printable tabletop miniature: Meshy image-to-3D, mesh checks, Bambu Studio slicing and support review."
     }
   ]
 }
