@@ -59,16 +59,31 @@ meters, answer **No**.
 
 ### 5. Slicer settings
 
-| Setting | Value |
-|---|---|
-| Nozzle / layer | 0.4 mm / 0.12 mm (0.2 mm / 0.06 mm for heroes) |
-| Supports | Tree (auto), style **Slim**, **critical regions only ON** |
-| Top Z distance | 0.24 mm |
-| Brim | None |
-| Raft first layer expansion | 0 (keeps support feet separate instead of a ring around the base) |
+Start from **0.12mm Fine** (0.4 mm nozzle) and switch the settings view to **Advanced**; most of
+these are hidden otherwise. Bambu's own defaults are made for brackets and boxes: supports one
+layer below the model and 0.35 mm beside it, so on a mini they fuse to the surface and wrap
+around hands and faces.
+
+| Setting (Support tab) | Bambu default | Use |
+|---|---|---|
+| Type / Style | Tree (auto) / Default | Tree (auto) / **Slim** |
+| Threshold angle | 20° | **50°** (only real overhangs get support) |
+| On build plate only | off | **on** |
+| Support critical regions only | off | **on** |
+| Top Z distance | 0.12 mm (one layer) | **0.24 mm** (two layers) |
+| Bottom Z distance | 0.12 mm | **0.24 mm** |
+| Support/object XY distance | 0.35 mm | **0.8 mm** (keeps trees off hands and faces) |
+| Support/object first layer gap | | **0.5 mm** |
+| Tree branch diameter | 2 mm | **1.2 mm** |
+| Tree support wall loops | auto | **1** |
+| Raft first layer expansion | auto | **0** (separate support feet, not a ring around the base) |
+| Brim (Others tab) | auto | **None** |
+
+For 0.2 mm nozzle heroes: 0.06 mm layers, top Z distance 0.16 mm, the rest the same.
 
 Avoid the "Strong" tree style and turning off "critical regions only": both pile on supports
-that are hard to remove.
+that are hard to remove. Tall supports (over about 20 mm) on a slim tree can topple; use 2 mm
+branches with 2 wall loops for those.
 
 ### 6. The layer preview check
 
