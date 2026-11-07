@@ -15,7 +15,13 @@
   original pipeline.
 
 ## Next
-- Fresh-machine install test through `/plugin install` (uv creates the venv inside the plugin cache).
+- Fresh install tested 2026-11-06 (clean Claude config and home folder, clone of the repo): install, setup, doctor,
+  islands and slice all work. A very long install path breaks on Windows' 260-character limit (a shapely DLL);
+  the normal ~/.claude path is fine.
+- **Gate calibration for single figures (blocker for strangers).** Both creatures from the 2026-10-31 plate printed
+  well, yet alone on the default overlay each is NOT READY (an uncovered claw/paw start next to the base), and on
+  creature-0.4-stout the small rodent fails the 40% base-root rule (69%; the rule was set on multi-figure plates).
+  Recheck the landing check near the base top and the base-root share for small single figures before release.
 - First real job through the plugin with an invented character (paid conversion + LAN print), which is also
   the video footage.
 - Tip link (Ko-fi) in the README and `.github/FUNDING.yml` once the account exists.
