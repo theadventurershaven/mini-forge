@@ -97,10 +97,14 @@ each with notes on how well it has been tested):
 
 Before slicing it paints support enforcers at the mid-air starts `islands` found (`--no-paint`
 to skip). Afterwards it prints the estimate, the bed temperatures (must match the plate), the
-**support audit** (tall slender trees fall over mid-print; too many roots on the base tops) and the
-**island check** (support coverage under each feature that starts in air). Anything 3+ mm out
-with under 20% support is a blocker: fix the geometry, or ask the user whether supports may root
-on the base top (`--set support_on_build_plate_only=0`). Risky free columns block until the user
+**support audit** (tall slender trees fall over mid-print; refused styles) and the
+**island check** (support coverage under each feature that starts in air). Where the slicer
+plants trees depends on how the figure is turned, so when either check fails `slice` turns the
+arranged figures in place (90, 180, 270, then the 45s) and re-slices, keeping the first turn that
+passes; tell the user the turn it used. If no turn passes, anything 3+ mm out with under 20%
+support is a blocker: fix the geometry, or ask the user whether supports may root on the base top
+(`--set support_on_build_plate_only=0`). When most support roots start on the base top, the output
+says so; mention it (they come off but can mark the base). Risky free columns block until the user
 accepts them (`--accept-free-columns`). `READY` means all of it passed. Show the user the
 preview, time, grams and any small unsupported islands (they may droop slightly).
 

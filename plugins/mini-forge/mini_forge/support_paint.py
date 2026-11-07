@@ -39,13 +39,15 @@ def enforcer_points(islands: list[dict], min_gap_mm: float = MIN_GAP_MM, min_are
 
 def mesh_files_by_stl(project: Path, face_counts: dict[str, int]) -> dict[str, str]:
     """Map each mesh file in the project to the STL (key of `face_counts`) with the closest
-    triangle count. The project stores each imported STL unchanged, copies included."""
+    triangle count. The project stores each imported STL unchanged. Copies made with
+    --clone-objects share their original's mesh file and leave empty stub files, which are skipped."""
     out = {}
     with zipfile.ZipFile(project) as z:
         for n in z.namelist():
             if n.startswith("3D/Objects/") and n.endswith(".model"):
                 k = len(re.findall(rb"<triangle ", z.read(n)))
-                out[n] = min(face_counts, key=lambda s: abs(face_counts[s] - k))
+                if k:
+                    out[n] = min(face_counts, key=lambda s: abs(face_counts[s] - k))
     return out
 
 

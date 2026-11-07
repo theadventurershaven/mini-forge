@@ -102,9 +102,10 @@ checks come from real prints on it; the plugin itself has been run from mesh to 
 real models. Known limits:
 
 - Slicing needs Bambu Studio and a Bambu printer profile.
-- Where the slicer plants trees shifts slightly with the model's position on the plate, so the
-  coverage check can pass on one slice and flag a start on the next. Re-slicing or painting
-  more support is the fix; do not ignore a flagged start.
+- Where the slicer plants trees depends on how the figure is turned on the plate: one creature's
+  claw went from 75% supported to 0% between two angles. `slice` turns the figures and re-slices
+  until the checks pass, and says which turn it used; if none passes, do not ignore the flagged
+  start.
 - Many-legged creatures need a per-leg review; one scorpion lost its legs.
 
 Reports from other printers and filaments are welcome as GitHub issues.

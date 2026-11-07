@@ -1,4 +1,5 @@
 import json
+import re
 import zipfile
 
 import numpy as np
@@ -161,7 +162,7 @@ def test_support_audit_refuses_tree_strong_and_critical_only_off(tmp_path):
     assert audit_supports(ok, 0.4).passed
 
 
-def test_support_audit_refuses_supports_rooted_on_the_base(tmp_path):
+def test_support_audit_reports_supports_rooted_on_the_base(tmp_path):
     def patch(z0, z1):  # a 4 x 4 mm block of support lines, like a trunk's footprint
         return {round(z, 2): [(98 + i * 0.5, 98 + j * 0.5, 98.4 + i * 0.5, 98 + j * 0.5, "Support")
                               for i in range(8) for j in range(8)] for z in np.arange(z0, z1, 0.2)}
@@ -169,7 +170,7 @@ def test_support_audit_refuses_supports_rooted_on_the_base(tmp_path):
     g = tmp_path / "base.gcode"
     g.write_text(gcode(on_base))
     a = audit_supports(g, 0.4, base_top_mm=2.0)
-    assert a.base_root_share == 1.0 and not a.passed
+    assert a.base_root_share == 1.0 and a.passed  # reported, not refused (tree_strong is refused on its own)
     g.write_text(gcode(plate))
     assert audit_supports(g, 0.4, base_top_mm=2.0).base_root_share == 0.0
 
@@ -212,3 +213,31 @@ def test_enforcer_points_and_painting(tmp_path):
     assert counts == {"3D/Objects/object_1.model": 1}
     text = zipfile.ZipFile(out).read("3D/Objects/object_1.model").decode()
     assert text.count('paint_supports="4"') == 1 and '<triangle v1="0" v2="2" v3="1" paint_supports="4"/>' in text
+
+
+def test_turn_items_aligns_copies_turns_and_refuses_overlap(tmp_path):
+    from shapely.geometry import box
+
+    from mini_forge.slicer import turn_items
+    # Two copies of one figure sharing a mesh file (as --clone-objects writes them); arrange left the second at 90 deg.
+    objs = "".join(f'<object id="{i}" type="model"><components><component p:path="/3D/Objects/object_1.model" objectid="1" '
+                   f'transform="1 0 0 0 1 0 0 0 1 0 0 1"/></components></object>' for i in (2, 3))
+    items = ('<item objectid="2" transform="1 0 0 0 1 0 0 0 1 100 100 0" printable="1"/>'
+             '<item objectid="3" transform="0 1 0 -1 0 0 0 0 1 140 100 0" printable="1"/>')
+    proj = tmp_path / "p.3mf"
+    with zipfile.ZipFile(proj, "w") as z:
+        z.writestr("3D/3dmodel.model", f"<model><resources>{objs}</resources><build>{items}</build></model>")
+        z.writestr("Metadata/model_settings.config", '<config><plate><metadata key="thumbnail_file" value="Metadata/plate_1.png"/></plate></config>')
+        z.writestr("Metadata/plate_1.png", b"old")
+    bed = box(0, 0, 256, 256)
+    narrow = {"3D/Objects/object_1.model": box(-12, -3, 12, 3)}  # a 24 x 6 mm footprint
+    out = tmp_path / "t.3mf"
+    assert turn_items(proj, out, 90, narrow, bed)
+    with zipfile.ZipFile(out) as z:
+        model = z.read("3D/3dmodel.model").decode()
+        assert "Metadata/plate_1.png" not in z.namelist() and "thumbnail_file" not in z.read("Metadata/model_settings.config").decode()
+    rots = [np.array(t.split()[:9], float).reshape(3, 3) for t in re.findall(r'<item [^>]*transform="([^"]+)"', model)]
+    assert np.allclose(rots[0], rots[1]) and np.allclose(rots[0][:2, :2], [[0, 1], [-1, 0]])
+    # Aligned side by side, two 42 mm-wide footprints 40 mm apart would overlap: refused, nothing written.
+    wide = {"3D/Objects/object_1.model": box(-21, -3, 21, 3)}
+    assert not turn_items(proj, tmp_path / "w.3mf", 0, wide, bed) and not (tmp_path / "w.3mf").exists()

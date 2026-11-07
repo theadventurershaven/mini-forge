@@ -346,7 +346,7 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
     from .islands import landing_coverage, top_gap_from_gcode
     from .profiles import overlay_nozzle, overlays
     from .slicer import bed_temperature, slice_plate
-    from .support_audit import write_audit
+    from .support_audit import BASE_ROOT_NOTE_SHARE, write_audit
     d = job_dir(job)
     s = Settings.load()
     overlay = overlay or ("detail-0.2-stout" if s.nozzle == 0.2 else "standard-0.4")
@@ -369,15 +369,23 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
     risky_cols = [c for c in cols if c.get("risky")]
     name = name or job
     out = d / f"slice-{name}"
-    r = slice_plate([d / "model.stl"], overlay, out, name, copies=copies, changes=changes, settings=s,
-                    enforcers={d / "model.stl": points})
     base_top = read_json(d / "scale.json").get("base_mm", [25, 2])[1]
-    audit = write_audit(r.gcode, r.nozzle, out / "support-audit.json", base_top_mm=base_top)
-    cover = landing_coverage(r.gcode, top_gap_from_gcode(r.gcode), base_top + 0.3)
+    checked: dict = {}
+
+    def accept(res) -> tuple[bool, int]:
+        a = checked["audit"] = write_audit(res.gcode, res.nozzle, out / "support-audit.json", base_top_mm=base_top)
+        c = checked["cover"] = landing_coverage(res.gcode, top_gap_from_gcode(res.gcode), base_top + 0.3)
+        click.echo(f"  turned {res.turn_deg:g} deg: support audit {'PASS' if a.passed else 'FAIL'}, {len(c['risky'])} risky island(s)")
+        return a.passed and c["passed"], len(a.reasons) + len(c["risky"])
+
+    r = slice_plate([d / "model.stl"], overlay, out, name, copies=copies, changes=changes, settings=s,
+                    enforcers={d / "model.stl": points}, accept=accept)
+    audit, cover = checked["audit"], checked["cover"]
     write_json(out / "island-coverage.json", cover)
     beds = bed_temperature(r.gcode.read_text(encoding="utf-8", errors="replace")[:200000])
     report = {"overlay": overlay, "changes": changes, "copies": copies, "package": r.package.name,
-              "enforcer_points": points, "painted_faces": r.painted,
+              "enforcer_points": points, "painted_faces": r.painted, "turn_deg": r.turn_deg, "turns_tried": r.attempts,
+              "base_root_share": audit.base_root_share,
               "risky_free_columns": risky_cols, "free_columns_accepted": bool(accept_free_columns and risky_cols),
               "estimate_s": r.estimated_time_s, "filament_g": r.filament_g, "layer_mm": r.layer_height, "nozzle": r.nozzle,
               "bed_temperatures": beds, "support_audit_passed": audit.passed, "support_audit_reasons": audit.reasons,
@@ -385,6 +393,9 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
               "ready": audit.passed and cover["passed"] and (not risky_cols or accept_free_columns)}
     write_json(out / "slice-report.json", report)
     click.echo(r.summary())
+    if r.turn_deg:
+        click.echo(f"figures turned {r.turn_deg:g} degrees from the slicer's arrangement: "
+                   + ("the first turn that passed the checks" if audit.passed and cover["passed"] else "no turn passed; this one had the fewest problems"))
     if points:
         click.echo(f"painted support enforcers at {len(points)} mid-air start(s): {sum(r.painted.values())} faces")
     if risky_cols:
@@ -393,6 +404,8 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
     click.echo(f"bed temperature commands: {beds} (check they match your plate)")
     click.echo(f"support audit: {'PASS' if audit.passed else 'FAIL'} ({audit.columns} columns, tallest {audit.tallest_mm} mm)"
                + "".join(f"\n  - {x}" for x in audit.reasons))
+    if audit.base_root_share > BASE_ROOT_NOTE_SHARE:
+        click.echo(f"note: {audit.base_root_share:.0%} of support roots start on the base top; they come off, but can mark it")
     click.echo(f"islands: {len(cover['islands'])} start in air; {len(cover['risky'])} risky (>3 mm out, <20% supported)")
     for row in cover["islands"]:
         click.echo(f"  z {row['z']:6.2f} at {row['xy']}: {row['from_model_mm']} mm out, {row['support_coverage']:.0%} supported")

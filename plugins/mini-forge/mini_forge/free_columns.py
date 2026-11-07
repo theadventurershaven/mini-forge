@@ -26,7 +26,10 @@ from shapely.geometry import Polygon
 # Calibration (2026-10-28): failed on 0.2 mm: a dog tail 5.4 mm / 1.22 mm2 / join 2.68 (twice), a hanging forearm
 # 11.2 mm / 0.43 mm2 (twice). Printed fine: a raised elbow 2.8 mm / 1.40 mm2 (ratio 0.51). A quadruped
 # tail (5.7 mm / 0.81 mm2, 0.4 mm nozzle) is flagged but printed acceptably; physical tail quality was not reported.
-FREE_HEIGHT_MM = 2.0
+# 2026-11-07: two curled claw tips on a creature (2.3 and 2.5 mm / 0.3 mm2 / join 1.1-1.2 mm2, 0.4 mm nozzle) were
+# flagged at 2 mm but printed on a plate the owner called one of the strongest (no breakage reported). Every column
+# that broke was 5.4 mm or taller and every one that printed fine was 2.8 mm or shorter, so the floor is 3 mm.
+FREE_HEIGHT_MM = 3.0
 JOIN_MM2 = 3.0
 NECK_RATIO = 0.3
 
@@ -114,7 +117,8 @@ def _finish(rec: dict, joined_z: float | None, join_area: float) -> FreeColumn:
 
 
 def main(argv: list[str] | None = None) -> int:
-    import argparse, json
+    import argparse
+    import json
     from dataclasses import asdict
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("stl", type=Path)

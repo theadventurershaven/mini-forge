@@ -37,9 +37,12 @@ LEAN_MIN_HEIGHT_MM = 8.0
 #   was meant for. Paint an enforcer at the uncovered start instead (support_paint.py).
 REFUSED_STYLES = {"tree_strong": "merges trees into solid walls on the base tops that cannot be removed cleanly"}
 CRITICAL_ONLY_OFF = "multiplies supports everywhere; paint an enforcer at the uncovered start instead"
-# Share of support roots that start on the base tops instead of the plate. Printed slices the
-# owner liked measured 0.12-0.13; the tree_strong plate with unremovable supports measured 1.0.
-BASE_ROOT_SHARE_LIMIT = 0.4
+# Share of support roots that start on the base tops instead of the plate: reported, not refused.
+# The tree_strong plate with unremovable supports measured 1.0, but that style is refused on its
+# own. With tree_slim a small creature measured 0.72 on its own base, on a plate the owner called
+# one of the strongest prints, so a share limit only fails good single figures. Overlays that
+# allow supports on the base say so, and the skill asks the user before choosing one.
+BASE_ROOT_NOTE_SHARE = 0.4
 
 
 @dataclass
@@ -217,9 +220,6 @@ def audit_supports(gcode_path: Path, nozzle_mm: float, base_top_mm: float = 2.0)
         reasons.append(f"support_critical_regions_only off is refused: {CRITICAL_ONLY_OFF}")
     plate_a, base_a = support_roots(layers, base_top_mm)
     share = base_a / (plate_a + base_a) if plate_a + base_a >= 2.0 else 0.0
-    if share > BASE_ROOT_SHARE_LIMIT:
-        reasons.append(f"{share:.0%} of support roots start on the base tops ({base_a:.1f} mm2 vs {plate_a:.1f} mm2 on the plate); "
-                       f"limit {BASE_ROOT_SHARE_LIMIT:.0%}: these are hard to remove and scar the base")
     tallest = max((c.height for c in cols), default=0.0)
     max_lean = max((c.lean_deg for c in cols), default=0.0)
     for c in cols:
