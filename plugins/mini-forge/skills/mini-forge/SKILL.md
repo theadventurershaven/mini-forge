@@ -44,6 +44,9 @@ renders and reports at each review point; keep messages short.
    `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. If `uv`
    is still not found afterwards, call it by full path (`~/.local/bin/uv`, Windows
    `%USERPROFILE%\.local\bin\uv.exe`) for the rest of this session.
+   The first `mini-forge` command downloads its Python packages (a minute or two). Before that
+   first run, tell the user in one line and ask for their OK; permission checks may otherwise
+   stop it as unreviewed code.
 1. Check `mini-forge doctor`. If Bambu Studio is missing, give the user the download link
    (https://bambulab.com/en/download/studio) and wait for them to install it. If it has not been set up, ask the user for their printer model,
    installed nozzle (0.2 for detail, 0.4 for speed), plate type and filament, then run
