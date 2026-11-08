@@ -25,9 +25,12 @@ with the creator's permission; not to copy other people's miniatures, characters
    open its **Code** tab. That is Claude Code, which comes with any paid Claude plan that
    includes it. mini-forge needs Claude Code, not regular Claude chat or Cowork, because it runs
    Bambu Studio's slicer on your computer. (Claude Code in a terminal works the same way.)
-2. **Add mini-forge.** In the Code tab's message box, enter these two lines, one at a time:
+2. **Add mini-forge.** In the Code tab's message box, send this:
    ```
    /plugin marketplace add theadventurershaven/mini-forge
+   ```
+   then this:
+   ```
    /plugin install mini-forge@mini-forge-marketplace
    ```
 3. **Ask for a mini:** *"make a mini of a hunched plague rat-man with a rusted cleaver"*, or
