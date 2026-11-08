@@ -1,10 +1,13 @@
 # Reference-picture prompts
 
 The reference picture decides most of the result: Meshy builds what it sees, and the printer
-prints from the bottom up. Two ways to make it:
+prints from the bottom up. Three ways to make it:
 
 - **Free, by hand:** the user pastes a prompt below into Gemini (choose the "Pro" model) or
-  ChatGPT, with their image attached if they have one, and returns the picture.
+  ChatGPT, with their image attached if they have one, and drags the picture into the job's
+  picture folder.
+- **Free, Claude drives the browser (optional):** with the Claude in Chrome extension, Claude
+  sends the prompt and the follow-up edits in the user's own Gemini tab and reviews the result.
 - **Automatic, paid:** `mini-forge picture` with a short prompt (600-character limit), about
   9 Meshy credits per picture or edit.
 

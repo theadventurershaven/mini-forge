@@ -241,3 +241,22 @@ def test_turn_items_aligns_copies_turns_and_refuses_overlap(tmp_path):
     # Aligned side by side, two 42 mm-wide footprints 40 mm apart would overlap: refused, nothing written.
     wide = {"3D/Objects/object_1.model": box(-21, -3, 21, 3)}
     assert not turn_items(proj, tmp_path / "w.3mf", 0, wide, bed) and not (tmp_path / "w.3mf").exists()
+
+
+def test_pictures_adds_without_overwriting_and_lists(monkeypatch, tmp_path):
+    from click.testing import CliRunner
+
+    from mini_forge.cli import main
+
+    monkeypatch.setenv("MINI_FORGE_JOBS", str(tmp_path / "minis"))
+    monkeypatch.setenv("MINI_FORGE_HOME", str(tmp_path / "home"))
+    pic = tmp_path / "Gemini_Generated_Image_x.png"
+    pic.write_bytes(b"\x89PNG")
+    r = CliRunner()
+    assert r.invoke(main, ["new", "rat-man"]).exit_code == 0
+    assert "no pictures yet" in r.invoke(main, ["pictures", "rat-man"]).output
+    r.invoke(main, ["pictures", "rat-man", "--add", str(pic)])
+    out = r.invoke(main, ["pictures", "rat-man", "--add", str(pic)]).output
+    assert "Gemini_Generated_Image_x-2.png" in out and "Gemini_Generated_Image_x.png" in out
+    (tmp_path / "notes.txt").write_text("x")
+    assert r.invoke(main, ["pictures", "rat-man", "--add", str(tmp_path / "notes.txt")]).exit_code != 0

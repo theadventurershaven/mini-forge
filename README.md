@@ -52,7 +52,10 @@ runs `claude plugin marketplace update mini-forge-marketplace` and
 - **Claude:** a paid plan that includes Claude Code.
 - **Meshy:** API access needs a Pro plan or above (check their pricing page). About **25 credits
   per mini**; about 9 more if you let Meshy make the reference picture.
-- **Reference picture:** free with Gemini or ChatGPT: mini-forge writes the prompt, you paste it.
+- **Reference picture:** free with Gemini or ChatGPT: mini-forge writes the prompt, you paste it
+  and drag the picture into the folder it opens. Optional: with the
+  [Claude in Chrome](https://claude.com/chrome) extension, Claude can run Gemini for you in your
+  browser and review and fix the picture itself. Or let Meshy make it (paid).
 - Every paid step shows its cost and waits for your yes.
 
 ## Printers
@@ -64,7 +67,7 @@ should work but are untested. Other brands: the 3D model steps work, slicing doe
 
 | Step | Command | What it checks |
 |---|---|---|
-| Reference picture | you in Gemini/ChatGPT, or `mini-forge picture` | Every hand, claw, tail and weapon touches something; feet on the base; nothing hangs down |
+| Reference picture | you in Gemini/ChatGPT, Claude in your browser (optional), or `mini-forge picture` | Every hand, claw, tail and weapon touches something; feet on the base; nothing hangs down |
 | Conversion | `mini-forge convert` | Shows the credit cost first; recovers interrupted tasks instead of paying twice |
 | Inspect | `mini-forge inspect` | Closed solid, front/side/back renders, where the sculpted base ends |
 | Scale | `mini-forge scale` | Uniform scale by feet-to-eye height (32 mm heroic human) onto a plain 25 mm base |

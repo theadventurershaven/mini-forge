@@ -163,6 +163,45 @@ def new(job, subject, photo) -> None:
     click.echo(d)
 
 
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+
+
+@main.command()
+@click.argument("job")
+@click.option("--open", "open_folder", is_flag=True, help="Open the job's picture folder in Finder / File Explorer.")
+@click.option("--add", "add", type=click.Path(exists=True, dir_okay=False),
+              help="Copy this picture (e.g. one the user dragged into the chat) into the picture folder.")
+def pictures(job, open_folder, add) -> None:
+    """List the pictures in a job's reference folder; optionally open it or add one."""
+    ref = job_dir(job) / "reference"
+    ref.mkdir(exist_ok=True)
+    if add:
+        src = Path(add)
+        if src.suffix.lower() not in IMAGE_SUFFIXES:
+            raise click.ClickException(f"{src.name} is not a picture ({', '.join(sorted(IMAGE_SUFFIXES))})")
+        dest = ref / src.name
+        n = 2
+        while dest.exists():
+            dest = ref / f"{src.stem}-{n}{src.suffix}"
+            n += 1
+        dest.write_bytes(src.read_bytes())
+        click.echo(f"added {dest.name}")
+    if open_folder:
+        if sys.platform == "win32":
+            os.startfile(ref)
+        else:
+            import subprocess
+
+            subprocess.run(["open" if sys.platform == "darwin" else "xdg-open", str(ref)], check=False)
+        click.echo(f"opened {ref}")
+    found = sorted((p for p in ref.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES),
+                   key=lambda p: p.stat().st_mtime)
+    for p in found:
+        click.echo(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(p.stat().st_mtime))}  {p.name}")
+    if not found:
+        click.echo(f"no pictures yet in {ref}")
+
+
 @main.command()
 @click.argument("job")
 @click.option("--prompt-file", type=click.Path(exists=True, dir_okay=False), required=True,

@@ -63,18 +63,30 @@ renders and reports at each review point; keep messages short.
    little more if it is thin: build, clothing, what it holds and how, pose.
 2. Make the reference picture, using [reference-prompts.md](reference-prompts.md) ("from a
    description" or "from an image"):
-   - **Free (default):** fill the full prompt and give it to the user to paste into Gemini
-     ("Pro" model) or ChatGPT, with their image if any. Ask them only to download the picture
-     and tell you when it's done; don't ask them to move or rename it. Find the newest image in
-     their Downloads folder (Gemini names it `Gemini_Generated_Image_*`, ChatGPT `ChatGPT Image *`),
-     show it to confirm it's the one, and copy it into the job's `reference/` folder yourself.
-   - **Automatic (paid, if the user prefers):** write the short prompt to
-     `minis/<job>/reference/prompt.txt`, run `mini-forge picture <job> --prompt-file ...` for the
-     estimate, then add `--yes` after their yes.
+   Offer the routes below in one short line each and let the user choose (default: by hand).
+   Never look in the user's Downloads or other folders; pictures reach you only through the
+   job's picture folder or a file the user drags into the chat.
+   - **Free, by hand (default):** fill the full prompt and give it to the user to paste into
+     Gemini ("Pro" model) or ChatGPT, with their image if any. Run `mini-forge pictures <job> --open`
+     so the job's picture folder opens, and ask them to drag the finished picture into it
+     (straight from the browser or from wherever they saved it), or into this chat; for a file
+     dragged into the chat run `mini-forge pictures <job> --add <path>`. Then
+     `mini-forge pictures <job>` lists what arrived.
+   - **Free, Claude drives the browser (optional):** only if the user picks it and the Claude in
+     Chrome browser tools are available in this session. Say first that you will work in a new
+     tab of their own browser, in their signed-in Gemini account, and touch nothing else. Open
+     gemini.google.com/app in a new tab, start a new chat, choose the "Pro" model, attach their
+     image if any (with the browser upload tool, or ask them to attach it in that tab), and send
+     the prompt (Enter sends, so join its paragraphs with spaces). Pictures take about a minute;
+     retry once on an error. Review the picture in the tab yourself and send the follow-up edits
+     there (step 3). When it is accepted, run `pictures <job> --open` and ask the user to drag the
+     picture from the Gemini tab into the folder.
+   - **Automatic (paid):** write the short prompt to `minis/<job>/reference/prompt.txt`, run
+     `mini-forge picture <job> --prompt-file ...` for the estimate, then add `--yes` after their yes.
 3. Review the picture at full size (checklist in reference-prompts.md). For each hand, claw,
    cloth corner, tail or weapon tip that would start in mid-air or hang below what it belongs to,
-   send the matching follow-up edit (by hand in the same chat, or `picture --edit`). Accept the
-   picture when everything touches something.
+   use the matching follow-up edit: give it to the user to paste (by hand), send it yourself
+   (browser route), or `picture --edit` (paid). Accept the picture when everything touches something.
 
 ## 2. Meshy conversion
 
