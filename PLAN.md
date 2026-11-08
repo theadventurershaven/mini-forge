@@ -10,6 +10,7 @@
   mid-air starts; audit refuses tree_strong, critical-only off and >40% base-rooted supports (the last dropped 2026-11-07); `creature-0.4-stout`
   overlay; README for strangers; `docs/GUIDE.md`.
 - Tests (synthetic, no private data) and `claude plugin validate` pass.
+- Ko-fi tip link (ko-fi.com/theadventurershaven) in the README and `.github/FUNDING.yml` (2026-11-07).
 - Dry run on a real Meshy mesh (hooded ghost): same support columns, tallest tree and island result as the
   original pipeline's printed slice. 0.2.0 run on a printed creature: same free columns and painted faces as the
   original pipeline.
@@ -28,5 +29,4 @@
   which plate-only trees cannot reach, and that is what the creature overlay is for.
 - First real job through the plugin with an invented character (paid conversion + LAN print), which is also
   the video footage.
-- Tip link (Ko-fi) in the README and `.github/FUNDING.yml` once the account exists.
 - Other Bambu models: confirm machine/process names for A1 / A1 mini / X1 / P2S.

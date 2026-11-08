@@ -110,6 +110,13 @@ real models. Known limits:
 
 Reports from other printers and filaments are welcome as GitHub issues.
 
+## Support
+
+mini-forge is free. If it saved you a failed print or two, you can leave a tip at
+[ko-fi.com/theadventurershaven](https://ko-fi.com/theadventurershaven); it pays for filament and
+Meshy credits for testing. Videos on making minis are on
+[The Adventurer's Haven](https://www.youtube.com/@TheAdventurersHaven).
+
 ## Licence
 
 MIT. Not affiliated with or endorsed by Bambu Lab, Meshy, Google, OpenAI or Anthropic.
