@@ -1,5 +1,7 @@
 # mini-forge
 
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/theadventurershaven)
+
 A Claude Code plugin that turns a one-line description, a sketch or a photo into a printable
 tabletop miniature, and checks it the way an experienced FDM mini printer would before you
 waste a night of printing.
@@ -118,7 +120,9 @@ Reports from other printers and filaments are welcome as GitHub issues.
 
 mini-forge is free. If it saved you a failed print or two, you can leave a tip at
 [ko-fi.com/theadventurershaven](https://ko-fi.com/theadventurershaven); it pays for filament and
-Meshy credits for testing. Videos on making minis are on
+Meshy credits for testing.
+
+[![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/theadventurershaven) Videos on making minis are on
 [The Adventurer's Haven](https://www.youtube.com/@TheAdventurersHaven).
 
 ## Licence
