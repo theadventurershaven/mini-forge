@@ -12,6 +12,10 @@ waste a night of printing.
    ──► support audit ──► .gcode.3mf for Bambu Studio, or (optional) a LAN print on a Bambu printer
 ```
 
+**For your own designs.** Use it on characters you created, things you have the rights to, or
+with the creator's permission; not to copy other people's miniatures, characters or game art
+([details](#use-it-on-your-own-designs)).
+
 **This runs in [Claude Code](https://claude.com/claude-code)** (the terminal / desktop app), not
 on the claude.ai website: it needs to run Bambu Studio's slicer and, optionally, reach your
 printer on your home network.

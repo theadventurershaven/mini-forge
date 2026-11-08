@@ -149,7 +149,7 @@ def filaments(search: str) -> None:
 @main.command()
 @click.argument("job")
 @click.option("--subject", default="", help="What the mini is, in a few words.")
-@click.option("--photo", type=click.Path(exists=True, dir_okay=False), help="Source photo or card art for the reference.")
+@click.option("--photo", type=click.Path(exists=True, dir_okay=False), help="Your photo, sketch or artwork for the reference.")
 def new(job, subject, photo) -> None:
     """Create a job folder."""
     d = job_dir(job, must_exist=False)

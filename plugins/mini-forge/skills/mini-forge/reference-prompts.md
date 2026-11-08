@@ -44,10 +44,10 @@ and a detailed back.
 One model only. No text, no border, no colour, no extra figures or objects.
 ```
 
-## From an image (photo, sketch, concept art, a card the user has permission for)
+## From an image (the user's own photo, sketch or artwork, or one they have permission to use)
 
 ```text
-Use the attached image as the character design reference only. Ignore any card frame, text, icons,
+Use the attached image as the character design reference only. Ignore any frame, text, icons,
 logos, background and other figures.
 
 Turn the main character into an unpainted neutral gray tabletop miniature sculpt on a plain white
