@@ -2,9 +2,10 @@
 
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/theadventurershaven)
 
-A Claude Code plugin that turns a one-line description, a sketch or a photo into a printable
-tabletop miniature, and checks it the way an experienced FDM mini printer would before you
-waste a night of printing.
+A Claude Code plugin that takes a tabletop miniature from concept to print with as little hand
+work as possible. Describe a character, or give it a sketch or photo, and it makes the reference
+picture, has Meshy turn it into a 3D model, scales it onto a base, sets up supports and slices
+it for your Bambu Lab printer, checking each step the way an experienced mini printer would.
 
 ```
 "a hunched plague rat-man with a rusted cleaver"
@@ -18,36 +19,41 @@ waste a night of printing.
 with the creator's permission; not to copy other people's miniatures, characters or game art
 ([details](#use-it-on-your-own-designs)).
 
-**This runs in [Claude Code](https://claude.com/claude-code)** (the terminal / desktop app), not
-on the claude.ai website: it needs to run Bambu Studio's slicer and, optionally, reach your
-printer on your home network.
+## Get started
 
-## What you need
-
-| | |
-|---|---|
-| Claude Code | Any paid Claude plan that includes Claude Code. |
-| [uv](https://docs.astral.sh/uv/) | One-line install; runs the plugin's Python tools. |
-| [Bambu Studio](https://bambulab.com/en/download/studio) | Installed normally; its command-line slicer is used. |
-| A Bambu Lab printer | Tested on a P1S with 0.4 and 0.2 mm nozzles. Other Bambu models should work but are untested. Other brands: the mesh steps work, slicing does not yet. |
-| A [Meshy](https://www.meshy.ai) plan with API access | Meshy lists API access on Pro and above (check their pricing page). About **25 credits per mini**; about 9 more per picture if you let Meshy make the reference picture. |
-| Gemini or ChatGPT (optional) | Free route for the reference picture: the plugin writes the prompt, you paste it. |
-
-## Install
-
-In Claude Code:
-
-```
-/plugin marketplace add theadventurershaven/mini-forge
-/plugin install mini-forge@mini-forge-marketplace
-```
-
-Then just ask: *"make a mini of a hunched plague rat-man with a rusted cleaver"*, or attach a
-sketch or photo, or run `/mini-forge`. The first run walks you through setup (printer model,
-nozzle, plate, filament) and tells you where to paste your Meshy API key
-(`~/.mini-forge/config.env`; Claude never reads it back into the conversation).
+1. **Get the [Claude desktop app](https://claude.com/download)** (Mac or Windows), sign in and
+   open its **Code** tab. That is Claude Code, which comes with any paid Claude plan that
+   includes it. mini-forge needs Claude Code, not regular Claude chat or Cowork, because it runs
+   Bambu Studio's slicer on your computer. (Claude Code in a terminal works the same way.)
+2. **Add mini-forge.** In the Code tab's message box, enter these two lines, one at a time:
+   ```
+   /plugin marketplace add theadventurershaven/mini-forge
+   /plugin install mini-forge@mini-forge-marketplace
+   ```
+3. **Ask for a mini:** *"make a mini of a hunched plague rat-man with a rusted cleaver"*, or
+   attach a sketch or photo. The first time, mini-forge checks your computer and walks you
+   through anything missing:
+   - **uv**, a small tool that runs mini-forge's Python code. Claude offers to install it for you.
+   - **[Bambu Studio](https://bambulab.com/en/download/studio)**, Bambu's free slicer, if you
+     don't already have it.
+   - **Your printer setup:** model, nozzle, plate and filament.
+   - **A Meshy API key**, from your [Meshy](https://www.meshy.ai) account. You paste it into a
+     settings file yourself; Claude never reads it back.
 
 Updates arrive when you run `/plugin marketplace update`.
+
+## What it costs
+
+- **Claude:** a paid plan that includes Claude Code.
+- **Meshy:** API access needs a Pro plan or above (check their pricing page). About **25 credits
+  per mini**; about 9 more if you let Meshy make the reference picture.
+- **Reference picture:** free with Gemini or ChatGPT: mini-forge writes the prompt, you paste it.
+- Every paid step shows its cost and waits for your yes.
+
+## Printers
+
+Tested on a Bambu Lab P1S with 0.4 and 0.2 mm nozzles. Other Bambu models
+should work but are untested. Other brands: the 3D model steps work, slicing does not yet.
 
 ## What happens at each step
 
@@ -118,9 +124,9 @@ Reports from other printers and filaments are welcome as GitHub issues.
 
 ## Support
 
-mini-forge is free. If it saved you a failed print or two, you can leave a tip at
+mini-forge is free. If it's useful to you, you can leave a tip at
 [ko-fi.com/theadventurershaven](https://ko-fi.com/theadventurershaven); it pays for filament and
-Meshy credits for testing.
+Meshy credits for testing new features.
 
 [![Support me on Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/theadventurershaven) Videos on making minis are on
 [The Adventurer's Haven](https://www.youtube.com/@TheAdventurersHaven).

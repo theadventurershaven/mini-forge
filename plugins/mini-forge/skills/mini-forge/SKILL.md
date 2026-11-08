@@ -38,7 +38,14 @@ renders and reports at each review point; keep messages short.
 
 ## 0. Setup (once)
 
-1. Check `mini-forge doctor`. If it has not been set up, ask the user for their printer model,
+0. Check `uv --version`. If uv is missing, tell the user mini-forge needs it to run its Python
+   tools and offer to install it with the official command; run it only after their yes:
+   macOS/Linux `curl -LsSf https://astral.sh/uv/install.sh | sh`, Windows
+   `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. If `uv`
+   is still not found afterwards, call it by full path (`~/.local/bin/uv`, Windows
+   `%USERPROFILE%\.local\bin\uv.exe`) for the rest of this session.
+1. Check `mini-forge doctor`. If Bambu Studio is missing, give the user the download link
+   (https://bambulab.com/en/download/studio) and wait for them to install it. If it has not been set up, ask the user for their printer model,
    installed nozzle (0.2 for detail, 0.4 for speed), plate type and filament, then run
    `mini-forge setup --printer-model "Bambu Lab P1S" --nozzle 0.4 --bed textured --filament "..." --ams-slot 1`.
    `mini-forge filaments <word>` lists exact filament profile names.
