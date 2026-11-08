@@ -43,7 +43,9 @@ with the creator's permission; not to copy other people's miniatures, characters
    - **A Meshy API key**, from your [Meshy](https://www.meshy.ai) account. You paste it into a
      settings file yourself; Claude never reads it back.
 
-Updates arrive when you run `/plugin marketplace update`.
+**Updates:** ask Claude to *"update the mini-forge plugin"*, then start a new session. (Claude
+runs `claude plugin marketplace update mini-forge-marketplace` and
+`claude plugin update mini-forge@mini-forge-marketplace`; you can run those in a terminal too.)
 
 ## What it costs
 
