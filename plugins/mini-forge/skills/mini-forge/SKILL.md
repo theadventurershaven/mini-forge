@@ -64,8 +64,10 @@ renders and reports at each review point; keep messages short.
 2. Make the reference picture, using [reference-prompts.md](reference-prompts.md) ("from a
    description" or "from an image"):
    - **Free (default):** fill the full prompt and give it to the user to paste into Gemini
-     ("Pro" model) or ChatGPT, with their image if any. Ask them to return the picture and save
-     it into the job's `reference/` folder.
+     ("Pro" model) or ChatGPT, with their image if any. Ask them only to download the picture
+     and tell you when it's done; don't ask them to move or rename it. Find the newest image in
+     their Downloads folder (Gemini names it `Gemini_Generated_Image_*`, ChatGPT `ChatGPT Image *`),
+     show it to confirm it's the one, and copy it into the job's `reference/` folder yourself.
    - **Automatic (paid, if the user prefers):** write the short prompt to
      `minis/<job>/reference/prompt.txt`, run `mini-forge picture <job> --prompt-file ...` for the
      estimate, then add `--yes` after their yes.
