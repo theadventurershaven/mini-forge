@@ -117,6 +117,34 @@ def filament_name(settings: Settings, nozzle: float) -> str:
     return f"mini-forge {settings.filament} {nozzle_tag(nozzle)} nozzle"
 
 
+def filament_fits(system_dir: Path, name: str, printer_model: str, nozzle: float = 0.4) -> bool:
+    """True if Bambu lists this filament profile for the printer (no list counts as a fit)."""
+    index = _index(system_dir, "filament")
+    listed = resolve(_load(index[name]), system_dir, name).get("compatible_printers") or []
+    return not listed or f"{printer_model} {nozzle_tag(nozzle)} nozzle" in listed
+
+
+def fitting_filament(system_dir: Path, name: str, printer_model: str) -> str:
+    """Bambu's variant of a filament profile made for this printer.
+
+    Brands ship one profile per printer family ("@BBL X1C" also covers the P1S, "@BBL P1P" only the
+    P1P), and the variants differ in bed temperature and fan settings, so a P1P profile on a P1S
+    prints with the wrong values.
+    """
+    index = _index(system_dir, "filament")
+    if name in index and filament_fits(system_dir, name, printer_model):
+        return name
+    prefix = name.split(" @")[0] + " @"
+    for candidate in sorted(index):
+        if (candidate.startswith(prefix) and not candidate.endswith(" nozzle") and "@base" not in candidate
+                and filament_fits(system_dir, candidate, printer_model)):
+            return candidate
+    if name not in index:
+        raise ProfileError(f"no Bambu filament profile named {name!r}; "
+                           "pick one Bambu Studio lists, e.g. 'Bambu PLA Basic @BBL X1C'")
+    return name
+
+
 def build_filament(settings: Settings, nozzle: float, overrides: dict | None = None) -> Path:
     """Resolve the chosen Bambu filament profile, preferring its variant for small nozzles."""
     system_dir = system_profile_dir(settings.slicer_path)

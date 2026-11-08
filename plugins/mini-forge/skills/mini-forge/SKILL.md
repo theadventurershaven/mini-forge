@@ -36,6 +36,10 @@ renders and reports at each review point; keep messages short.
   painted enforcer (automatic) or a geometry fix. Supports allowed to root on the base top
   (`--set support_on_build_plate_only=0`) can scar the base: ask the user before using it.
 
+- **First run:** the first `mini-forge` command on a computer downloads its Python packages (a
+  minute or two). Before running any `mini-forge` command for the first time, say so in one line
+  and wait for the user's OK.
+
 ## 0. Setup (once)
 
 0. Check `uv --version`. If uv is missing, tell the user mini-forge needs it to run its Python
@@ -44,14 +48,13 @@ renders and reports at each review point; keep messages short.
    `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`. If `uv`
    is still not found afterwards, call it by full path (`~/.local/bin/uv`, Windows
    `%USERPROFILE%\.local\bin\uv.exe`) for the rest of this session.
-   The first `mini-forge` command downloads its Python packages (a minute or two). Before that
-   first run, tell the user in one line and ask for their OK; permission checks may otherwise
-   stop it as unreviewed code.
 1. Check `mini-forge doctor`. If Bambu Studio is missing, give the user the download link
    (https://bambulab.com/en/download/studio) and wait for them to install it. If it has not been set up, ask the user for their printer model,
    installed nozzle (0.2 for detail, 0.4 for speed), plate type and filament, then run
    `mini-forge setup --printer-model "Bambu Lab P1S" --nozzle 0.4 --bed textured --filament "..." --ams-slot 1`.
-   `mini-forge filaments <word>` lists exact filament profile names.
+   `mini-forge filaments <word>` lists the exact names of Bambu's profiles for their printer
+   (brands ship one per printer family; the P1S uses the `@BBL X1C` ones, not `@BBL P1P`).
+   `setup` switches to the right printer's variant itself and says so.
 2. Ask the user to put `MESHY_API_KEY=` (and, only for LAN printing, `PRINTER_HOST`,
    `PRINTER_SERIAL`, `PRINTER_ACCESS_CODE`) into the config file `setup` printed. LAN printing
    also needs LAN Only Mode and Developer Mode on the printer's network settings screen.
@@ -72,8 +75,9 @@ renders and reports at each review point; keep messages short.
      (straight from the browser or from wherever they saved it), or into this chat; for a file
      dragged into the chat run `mini-forge pictures <job> --add <path>`. Then
      `mini-forge pictures <job>` lists what arrived.
-   - **Free, Claude drives the browser (optional):** only if the user picks it and the Claude in
-     Chrome browser tools are available in this session. Say first that you will work in a new
+   - **Free, Claude drives the browser (optional):** always offer it. It needs the Claude in
+     Chrome extension connected to this session (https://code.claude.com/docs/en/chrome); if the
+     browser tools aren't available, say that and fall back to by hand. Say first that you will work in a new
      tab of their own browser, in their signed-in Gemini account, and touch nothing else. Open
      gemini.google.com/app in a new tab, start a new chat, choose the "Pro" model, attach their
      image if any (with the browser upload tool, or ask them to attach it in that tab), and send

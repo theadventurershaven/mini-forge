@@ -86,6 +86,16 @@ def setup(printer_model, nozzle, filament, bed, slicer_path, ams_slot) -> None:
     s = Settings.load()
     if not s.slicer_path.exists():
         raise click.ClickException(f"Bambu Studio not found at {s.slicer_path}; pass --slicer-path")
+    from .profiles import ProfileError, fitting_filament
+    try:
+        fitted = fitting_filament(system_profile_dir(s.slicer_path), s.filament, s.printer_model)
+    except ProfileError as exc:
+        raise click.ClickException(str(exc)) from exc
+    if fitted != s.filament:
+        click.echo(f"filament: {s.filament!r} is Bambu's profile for another printer; "
+                   f"using {fitted!r}, the one Bambu lists for the {s.printer_model}")
+        set_key(str(cfg), "FILAMENT", fitted, quote_mode="never")
+        s = Settings.load()
     for n in (0.2, 0.4):
         try:
             click.echo(f"built {build_machine(s, n).name}")
@@ -135,14 +145,21 @@ def doctor() -> None:
 
 @main.command("filaments")
 @click.argument("search", required=False, default="")
-def filaments(search: str) -> None:
-    """List Bambu Studio filament profiles matching SEARCH (use the exact name in setup)."""
+@click.option("--printer-model", help='Show profiles for this printer (default: the one from setup), e.g. "Bambu Lab A1".')
+@click.option("--all", "show_all", is_flag=True, help="Also show profiles Bambu made for other printers.")
+def filaments(search: str, printer_model: str | None, show_all: bool) -> None:
+    """List Bambu Studio filament profiles for your printer matching SEARCH (use the exact name in setup)."""
+    from .profiles import filament_fits
     s = Settings.load()
-    names = sorted({p.stem for p in (system_profile_dir(s.slicer_path) / "filament").rglob("*.json")
-                    if "@base" not in p.stem and " nozzle" not in p.stem})
+    printer = printer_model or s.printer_model
+    system_dir = system_profile_dir(s.slicer_path)
+    names = sorted({p.stem for p in (system_dir / "filament").rglob("*.json")
+                    if "@base" not in p.stem and " nozzle" not in p.stem and search.lower() in p.stem.lower()})
     for n in names:
-        if search.lower() in n.lower():
+        if show_all or filament_fits(system_dir, n, printer):
             click.echo(n)
+    if not show_all:
+        click.echo(f"(profiles for the {printer}; --all shows every printer's)", err=True)
 
 
 # ---- job ---------------------------------------------------------------------------------

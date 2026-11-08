@@ -260,3 +260,21 @@ def test_pictures_adds_without_overwriting_and_lists(monkeypatch, tmp_path):
     assert "Gemini_Generated_Image_x-2.png" in out and "Gemini_Generated_Image_x.png" in out
     (tmp_path / "notes.txt").write_text("x")
     assert r.invoke(main, ["pictures", "rat-man", "--add", str(tmp_path / "notes.txt")]).exit_code != 0
+
+
+def test_fitting_filament_swaps_another_printers_profile(tmp_path):
+    from mini_forge.profiles import fitting_filament
+
+    fil = tmp_path / "filament" / "Brand"
+    fil.mkdir(parents=True)
+
+    def write(name, printers):
+        (fil / f"{name}.json").write_text(json.dumps(
+            {"type": "filament", "name": name, "compatible_printers": printers}), encoding="utf-8")
+    write("Brand PLA @BBL P1P", ["Bambu Lab P1P 0.4 nozzle"])
+    write("Brand PLA @BBL X1C", ["Bambu Lab X1 Carbon 0.4 nozzle", "Bambu Lab P1S 0.4 nozzle"])
+    assert fitting_filament(tmp_path, "Brand PLA @BBL P1P", "Bambu Lab P1S") == "Brand PLA @BBL X1C"
+    assert fitting_filament(tmp_path, "Brand PLA @BBL P1P", "Bambu Lab P1P") == "Brand PLA @BBL P1P"
+    assert fitting_filament(tmp_path, "Brand PLA", "Bambu Lab P1S") == "Brand PLA @BBL X1C"
+    with pytest.raises(ValueError):
+        fitting_filament(tmp_path, "Other PLA @BBL X1C", "Bambu Lab P1S")
