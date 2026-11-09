@@ -33,8 +33,13 @@ renders and reports at each review point; keep messages short.
   model or the supports, never the check.
 - **Supports:** never turn off "critical regions only" and never use `tree_strong`; both have
   produced masses of unremovable support, and `slice` refuses them. An uncovered start gets a
-  painted enforcer (automatic) or a geometry fix. Supports allowed to root on the base top
-  (`--set support_on_build_plate_only=0`) can scar the base: ask the user before using it.
+  painted enforcer (automatic) or a geometry fix.
+- **Supports must come off by hand.** The default profiles grow trees from the build plate only.
+  `--set support_on_build_plate_only=0` lets them stand on the base top **and on the figure
+  itself**: under a cloak, robe, skirt or arm they get boxed in, fuse to the cloth and are nearly
+  impossible to remove (a cloaked rat-man came out this way). Never add it on your own or just in
+  case. Use it only when a slice has already failed without it, and ask first in those words:
+  "supports would also stand on the figure, under the [cloak], and may be very hard to remove".
 
 - **First run:** the first `mini-forge` command on a computer downloads its Python packages (a
   minute or two). Before running any `mini-forge` command for the first time, say so in one line
@@ -130,11 +135,13 @@ to skip). Afterwards it prints the estimate, the bed temperatures (must match th
 plants trees depends on how the figure is turned, so when either check fails `slice` turns the
 arranged figures in place (90, 180, 270, then the 45s) and re-slices, keeping the first turn that
 passes; tell the user the turn it used. If no turn passes, anything 3+ mm out with under 20%
-support is a blocker: fix the geometry, or ask the user whether supports may root on the base top
-(`--set support_on_build_plate_only=0`). When most support roots start on the base top, the output
+support is a blocker: fix the geometry (the reference picture, so the feature touches the body), or
+ask the user as in the Supports rule. When most support roots start on the base top, the output
 says so; mention it (they come off but can mark the base). Risky free columns block until the user
-accepts them (`--accept-free-columns`). `READY` means all of it passed. Show the user the
-preview, time, grams and any small unsupported islands (they may droop slightly).
+accepts them (`--accept-free-columns`). `READY` means all of it passed; the checks do not measure how hard supports are
+to remove. If the output says supports stand on the figure, say where (under the cloak, between
+the legs) before the user prints. Show the user the preview, time, grams and any small
+unsupported islands (they may droop slightly).
 
 ## 5. Print
 

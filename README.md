@@ -89,6 +89,8 @@ Every paid step shows its cost and waits for your yes. Nothing prints without yo
   refuses the "strong" tree style, which fused supports into walls that would not come off.
 - **Check support under each feature, not just the settings.** A print failed with settings
   that passed every global check because one leg had 21% support under it.
+- **Supports grow from the build plate.** Allowed to stand on the figure, they got boxed in under
+  a cloak and fused to it. mini-forge asks before allowing that and says where they would land.
 - **Tall supports must be stout.** A slim 29 mm tree fell over mid-print and took a shield with it.
 - **Never smooth, remesh or thicken the whole model.** It costs the detail you came for.
 

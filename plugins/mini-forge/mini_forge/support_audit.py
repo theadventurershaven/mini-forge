@@ -87,6 +87,9 @@ class SupportAudit:
     plate_root_mm2: float = 0.0
     base_root_mm2: float = 0.0
     base_root_share: float = 0.0
+    figure_roots: int = 0
+    figure_root_mm2: float = 0.0
+    figure_root_z: list[float] = field(default_factory=list)
 
 
 def _header(g: str, key: str) -> str | None:
@@ -200,6 +203,23 @@ def support_roots(layers: dict[float, np.ndarray], base_top_mm: float) -> tuple[
     return len(low) * cell, len(high - grown) * cell
 
 
+def figure_roots(layers: dict[float, np.ndarray], base_top_mm: float, grow: int = 3) -> list[tuple[float, float]]:
+    """(z, mm2) for support that appears above the base top with no support under it, i.e. trees
+    standing on the figure itself. Only possible with supports allowed off the plate. A rough
+    count: a plate-only figure measured 3 small starts (sampling noise), an on-model one 21."""
+    bands = merge_layer_bands(layers)
+    prev: set = set()
+    roots = []
+    for z in sorted(bands):
+        cells = {tuple(c) for c in np.round(bands[z] / GRID_MM).astype(int)} if len(bands[z]) else set()
+        grown = {(a + i, b + j) for a, b in prev for i in range(-grow, grow + 1) for j in range(-grow, grow + 1)}
+        new = cells - grown
+        if z > base_top_mm + 0.6 and new:
+            roots.append((round(z, 2), len(new) * GRID_MM * GRID_MM))
+        prev = cells
+    return roots
+
+
 def audit_supports(gcode_path: Path, nozzle_mm: float, base_top_mm: float = 2.0) -> SupportAudit:
     g = Path(gcode_path).read_text()
     branch = _header(g, "tree_support_branch_diameter")
@@ -220,6 +240,7 @@ def audit_supports(gcode_path: Path, nozzle_mm: float, base_top_mm: float = 2.0)
         reasons.append(f"support_critical_regions_only off is refused: {CRITICAL_ONLY_OFF}")
     plate_a, base_a = support_roots(layers, base_top_mm)
     share = base_a / (plate_a + base_a) if plate_a + base_a >= 2.0 else 0.0
+    on_figure = figure_roots(layers, base_top_mm) if _header(g, "support_on_build_plate_only") == "0" else []
     tallest = max((c.height for c in cols), default=0.0)
     max_lean = max((c.lean_deg for c in cols), default=0.0)
     for c in cols:
@@ -235,6 +256,8 @@ def audit_supports(gcode_path: Path, nozzle_mm: float, base_top_mm: float = 2.0)
         worst=[{"height_mm": round(c.height, 2), "lean_deg": round(c.lean_deg, 1), "lean_mm": round(c.lean_mm, 1), "base_z": c.base_z, "top_z": c.top_z,
                 "base_xy": [round(v, 1) for v in c.base_xy], "min_area_mm2": round(c.min_area_mm2, 1), "min_area_z": c.min_area_z} for c in worst],
         support_style=style, plate_root_mm2=round(plate_a, 1), base_root_mm2=round(base_a, 1), base_root_share=round(share, 2),
+        figure_roots=len(on_figure), figure_root_mm2=round(sum(a for _, a in on_figure), 1),
+        figure_root_z=[z for z, _ in on_figure],
     )
 
 

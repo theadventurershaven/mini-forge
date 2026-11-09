@@ -442,6 +442,7 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
     report = {"overlay": overlay, "changes": changes, "copies": copies, "package": r.package.name,
               "enforcer_points": points, "painted_faces": r.painted, "turn_deg": r.turn_deg, "turns_tried": r.attempts,
               "base_root_share": audit.base_root_share,
+              "figure_roots": audit.figure_roots, "figure_root_z": audit.figure_root_z,
               "risky_free_columns": risky_cols, "free_columns_accepted": bool(accept_free_columns and risky_cols),
               "estimate_s": r.estimated_time_s, "filament_g": r.filament_g, "layer_mm": r.layer_height, "nozzle": r.nozzle,
               "bed_temperatures": beds, "support_audit_passed": audit.passed, "support_audit_reasons": audit.reasons,
@@ -462,6 +463,11 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
                + "".join(f"\n  - {x}" for x in audit.reasons))
     if audit.base_root_share > BASE_ROOT_NOTE_SHARE:
         click.echo(f"note: {audit.base_root_share:.0%} of support roots start on the base top; they come off, but can mark it")
+    if audit.figure_roots:
+        click.echo(f"note: supports stand on the figure itself in about {audit.figure_roots} places "
+                   f"(z {min(audit.figure_root_z):.1f} to {max(audit.figure_root_z):.1f} mm). Under a cloak, robe or arm "
+                   "they get boxed in and are the hardest to remove; the checks above do not measure that. "
+                   "Show the user where they are before calling it ready")
     click.echo(f"islands: {len(cover['islands'])} start in air; {len(cover['risky'])} risky (>3 mm out, <20% supported)")
     for row in cover["islands"]:
         click.echo(f"  z {row['z']:6.2f} at {row['xy']}: {row['from_model_mm']} mm out, {row['support_coverage']:.0%} supported")
