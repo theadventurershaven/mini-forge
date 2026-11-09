@@ -111,6 +111,10 @@ add `--yes`. It saves `original.glb`, the free analysis and the ledger in `logs/
    a heroic human, about 25 for a dwarf, smaller for small creatures; for animals choose a
    size that reads right next to human minis and say what you chose.
 3. Check `model-views.png`, the contacts on the base (all inside the rim) and the screening check.
+   Look for a weapon, blade or staff that touches the base only by a corner or tip and rises
+   from there before it reaches the hand: no check catches it, and it gets knocked loose mid-print.
+   Fix it in the picture (raised, or flat against the body along its length), not by lifting it
+   off the base.
 4. `mini-forge islands <job>`: lists where features start in mid-air (these get painted
    supports at slicing) and **risky free columns**: a feature that starts below the part it
    hangs from and grows upward on its own support tip before joining the body. Those broke off

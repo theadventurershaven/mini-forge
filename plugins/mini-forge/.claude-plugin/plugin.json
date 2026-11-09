@@ -1,6 +1,6 @@
 {
   "name": "mini-forge",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Description, sketch or photo to a printable tabletop miniature: reference picture via Gemini/ChatGPT (free) or Meshy, Meshy image-to-3D, mesh checks and eye-height scaling, Bambu Studio slicing with tested support profiles, painted supports and support audit, optional Bambu LAN printing.",
   "license": "MIT",
   "keywords": [

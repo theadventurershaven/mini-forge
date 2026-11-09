@@ -131,6 +131,13 @@ Examples that worked:
 - A robe or cloak hem above the base: "...lengthen the robe so its hem rests on the base all the way
   round, with no gap under it..." (supports cannot reach under a hem over the base from the plate;
   ones standing on the base fused under a rat-man's robe and would not come off).
+- A weapon pointing down (cleaver, sword, axe head): lifting it clear of the base does not help, it
+  then grows up from a support tip as a free column; resting it on the base by a corner or tip
+  does not work either (a cleaver standing on its corner was knocked loose mid-print and strung
+  to the hand). Ask for it held up: "...raise the [cleaver] so the blade points up and forward
+  above the hand...", or along its whole length: "...the flat of the blade lies against the
+  [thigh/robe] from hilt to tip...". If Gemini will not do either, a long edge resting flat on
+  the base is the last choice.
 - A strung bow with a free string does not print; ask for it unstrung or held against the body.
 - Wrong limb count: "Keep everything exactly the same, but add [N] more legs so there are exactly
   [COUNT], [N/2] on each side, matching the existing legs."
@@ -139,6 +146,8 @@ Examples that worked:
 
 - Limb count and equipment match the subject.
 - Every hand, claw and weapon touches something beside or below it; nothing hangs downward.
+- No weapon points down to the base or stands on it by a corner or tip; a downward blade either lies
+  against the body along its length or is raised.
 - Feet (or a robe, mist or rock) stand fully on the base.
 - No hem, cloak edge or hand hangs over the base with a gap under it: the base blocks supports from
   the plate, so anything there needs supports on the base or figure, which are hard to remove.
