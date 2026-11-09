@@ -116,6 +116,10 @@ add `--yes`. It saves `original.glb`, the free analysis and the ledger in `logs/
    hangs from and grows upward on its own support tip before joining the body. Those broke off
    on real prints even when fully supported. Fix them in the reference picture and reconvert
    (asking about the cost), or show them to the user and let them accept the risk.
+   It also lists **starts over the base**: plate trees cannot reach under them, so they would
+   need supports on the base or figure. A low ring of them is a robe or cloak hem. Recommend the
+   picture fix first (the matching follow-up edit, then reconvert, asking about the cost) and offer
+   on-base supports only as the second choice, saying they may be very hard to remove.
 
 ## 4. Slice and review
 

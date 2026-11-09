@@ -7,6 +7,7 @@ Paid Meshy calls and print starts need --yes; the skill asks the user before pas
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import sys
@@ -365,6 +366,14 @@ def islands(job, from_z) -> None:
     for r in sorted(found, key=lambda r: r["start_z"]):
         click.echo(f"  z {r['start_z']:6.2f}  area {r['area_mm2']:6.3f} mm2  at {r['xy']}  {r['gap_to_rest_mm']} mm from the rest  joins {r['joined_z']}")
     click.echo(f"{len(found)} islands; {len(far)} large or more than 3 mm out (fix these in the picture or mesh first)")
+    rim = read_json(d / "scale.json").get("base_mm", [25, 2])[0] / 2
+    over = [r for r in found if math.hypot(*r["xy"][:2]) < rim]
+    if over:
+        low = [r for r in over if r["start_z"] < base_top + 10]
+        click.echo(f"{len(over)} start(s) over the base ({len(low)} within 10 mm of its top): trees from the plate cannot "
+                   "reach under them, so they need supports standing on the base or the figure, which get boxed in and "
+                   "are hard to remove. A low ring of them is usually a robe or cloak hem; fix it in the picture "
+                   "(hem resting on the base, hands against the body) before allowing those supports.")
     from .free_columns import free_columns
     cols = [asdict(c) for c in free_columns(d / "model.stl", base_top_mm=base_top) if c.height_mm >= 0.5]
     write_json(d / "free-columns.json", cols)

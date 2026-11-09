@@ -33,6 +33,7 @@ It will be 3D printed in plastic from the bottom up, so every weapon, hand, shie
 and accessory must touch the body or the base through a natural contact point. Nothing hangs out in
 open air, and nothing dangles below the part it is attached to. No floating parts, no thin straps or
 cords hanging free, no cape, no thin spikes. Weapons, hilts and rims sturdy enough to print.
+A long robe, skirt or cloak reaches down and rests on the base all round, with no gap under its hem.
 
 Pose: natural, stable stance, head turned slightly toward the viewer, all load-bearing feet fully on
 the base.
@@ -64,6 +65,7 @@ It will be 3D printed in plastic from the bottom up, so every weapon, hand, shie
 and accessory must touch the body or the base through a natural contact point. Nothing hangs out in
 open air, and nothing dangles below the part it is attached to. No floating parts, no thin straps or
 cords hanging free, no cape, no thin spikes. Weapons, hilts and rims sturdy enough to print.
+A long robe, skirt or cloak reaches down and rests on the base all round, with no gap under its hem.
 
 Pose: natural, stable stance, head turned slightly toward the viewer, the same number of limbs as the
 reference, all load-bearing feet fully on the base.
@@ -126,6 +128,9 @@ Examples that worked:
   twice while fully supported).
 - A drooping tail: "...raise the tail so it curves up from the body..." (a drooping tail broke
   twice; raised, it printed intact).
+- A robe or cloak hem above the base: "...lengthen the robe so its hem rests on the base all the way
+  round, with no gap under it..." (supports cannot reach under a hem over the base from the plate;
+  ones standing on the base fused under a rat-man's robe and would not come off).
 - A strung bow with a free string does not print; ask for it unstrung or held against the body.
 - Wrong limb count: "Keep everything exactly the same, but add [N] more legs so there are exactly
   [COUNT], [N/2] on each side, matching the existing legs."
@@ -135,5 +140,7 @@ Examples that worked:
 - Limb count and equipment match the subject.
 - Every hand, claw and weapon touches something beside or below it; nothing hangs downward.
 - Feet (or a robe, mist or rock) stand fully on the base.
+- No hem, cloak edge or hand hangs over the base with a gap under it: the base blocks supports from
+  the plate, so anything there needs supports on the base or figure, which are hard to remove.
 - The back is shown or described; otherwise Meshy invents a plain back.
 - Judge the full-size picture, not a thumbnail.
