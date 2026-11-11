@@ -23,7 +23,8 @@ renders and reports at each review point; keep messages short.
   paying again.
 - **Printing:** only with the user's explicit yes in this conversation **and** their statement
   that the plate is clear (`--plate-clear --yes`). One yes = one print start. Never retry,
-  resume or restart a print on your own.
+  resume or restart a print on your own. To print the same package again, the user must ask for
+  that print; add `--reprint` (the old receipt is archived).
 - **Secrets:** the Meshy key and printer access code live in `~/.mini-forge/config.env`. Never
   print, echo or log them; ask the user to paste them into that file themselves.
 - **Detail:** never smooth, remesh, decimate or globally thicken the model. A thin warning means
@@ -160,7 +161,9 @@ With LAN printing, after the user's yes and plate-clear statement:
 `mini-forge print <job> --plate-clear --yes`. It refuses unless the printer is idle with no
 error, the nozzle matches the package, and the AMS slot has filament.
 
-Then watch: `mini-forge watch --until-layer 40` (run it in the background), a camera frame with
+Then watch: `mini-forge watch --until-layer 40` (run it in the background; it keeps one printer
+connection open and asks for a full report only every 5 minutes, since frequent reconnects have
+frozen a P1S mid-print). Do not run `status` while a watch is running. Take a camera frame with
 `mini-forge camera minis/<job>/first-layers.jpg`, then again near halfway and at the end. A part
 that comes loose raises no printer error, so the camera checks matter. On a clear failure,
 tell the user; pause only if they ask (`status`, then the printer screen). Keep one printer

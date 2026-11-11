@@ -141,14 +141,52 @@ class Printer:
         st, _ = self._session(None, wait_s=12)
         if not st.get("gcode_state"):
             raise PrinterError("no status report from the printer (check LAN mode, address and access code)")
-        bits = int(str((st.get("ams") or {}).get("tray_exist_bits", "0")), 16)
-        return Status(
-            state=st.get("gcode_state", "UNKNOWN"), job=st.get("subtask_name", ""),
-            percent=int(st.get("mc_percent") or 0), remaining_min=int(st.get("mc_remaining_time") or 0),
-            layer=int(st.get("layer_num") or 0), total_layers=int(st.get("total_layer_num") or 0),
-            nozzle_diameter=str(st.get("nozzle_diameter", "?")), part_fan=str(st.get("cooling_fan_speed", "?")),
-            print_error=int(st.get("print_error") or 0), hms=st.get("hms") or [],
-            slot_present={i + 1: bool(bits >> i & 1) for i in range(16)})
+        return status_from(st)
+
+    def monitor(self, max_s: float, check_s: float = 30, full_s: float = 300):
+        """Yield (status report, seconds since the printer last reported) every check_s seconds,
+        over one MQTT connection kept open for the whole watch.
+
+        The printer pushes changes on its own once subscribed, so only a full report ("pushall")
+        is requested, at the start and then every full_s seconds. Reconnecting and requesting a
+        full report every 90 s was in use when a P1S froze mid-print twice with no error; the
+        same file printed fine with two status reads in total.
+        """
+        state: dict = {}
+        heard = {"t": 0.0}
+        pushed = {"t": 0.0}
+
+        def pushall(c):
+            c.publish(f"device/{self.serial}/request", json.dumps({"pushing": {"sequence_id": "0", "command": "pushall"}}))
+            pushed["t"] = time.time()
+
+        def on_connect(c, u, f, rc, props=None):
+            c.subscribe(f"device/{self.serial}/report")
+            if time.time() - pushed["t"] >= full_s:
+                pushall(c)
+
+        def on_message(c, u, msg):
+            state.update({k: v for k, v in (json.loads(msg.payload).get("print") or {}).items() if k != "command"})
+            heard["t"] = time.time()
+
+        c = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id=f"mini-forge-watch-{int(time.time())}", protocol=mqtt.MQTTv311)
+        c.username_pw_set("bblp", self.code)
+        c.tls_set_context(_tls())
+        c.tls_insecure_set(True)
+        c.reconnect_delay_set(10, 120)
+        c.on_connect, c.on_message = on_connect, on_message
+        c.connect(self.host, 8883, keepalive=60)
+        c.loop_start()
+        t0 = time.time()
+        try:
+            while time.time() - t0 < max_s:
+                time.sleep(check_s)
+                if c.is_connected() and time.time() - pushed["t"] >= full_s:
+                    pushall(c)
+                yield dict(state), (time.time() - heard["t"] if heard["t"] else None)
+        finally:
+            c.loop_stop()
+            c.disconnect()
 
     def upload(self, local: Path) -> int:
         f = _ImplicitFTPS(context=_tls())
@@ -226,6 +264,18 @@ class Printer:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(frame)
         return dest
+
+
+def status_from(st: dict) -> Status:
+    """Status from a merged printer report."""
+    bits = int(str((st.get("ams") or {}).get("tray_exist_bits", "0")), 16)
+    return Status(
+        state=st.get("gcode_state", "UNKNOWN"), job=st.get("subtask_name", ""),
+        percent=int(st.get("mc_percent") or 0), remaining_min=int(st.get("mc_remaining_time") or 0),
+        layer=int(st.get("layer_num") or 0), total_layers=int(st.get("total_layer_num") or 0),
+        nozzle_diameter=str(st.get("nozzle_diameter", "?")), part_fan=str(st.get("cooling_fan_speed", "?")),
+        print_error=int(st.get("print_error") or 0), hms=st.get("hms") or [],
+        slot_present={i + 1: bool(bits >> i & 1) for i in range(16)})
 
 
 def preflight(printer: Printer, package: Path) -> Status:

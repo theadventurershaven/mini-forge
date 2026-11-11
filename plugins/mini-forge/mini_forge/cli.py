@@ -489,7 +489,8 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
 @click.option("--name", default=None, help="Slice name (default: the job name).")
 @click.option("--plate-clear", is_flag=True, help="The user confirmed the build plate is empty.")
 @click.option("--yes", is_flag=True, help="The user approved starting this print.")
-def print_cmd(job, name, plate_clear, yes) -> None:
+@click.option("--reprint", is_flag=True, help="The user wants this already-sent package printed again; the old receipt is archived.")
+def print_cmd(job, name, plate_clear, yes, reprint) -> None:
     """Upload and start a sliced job on a Bambu printer over LAN, after all gates pass."""
     from .printer import Printer, preflight
     d = job_dir(job)
@@ -501,12 +502,17 @@ def print_cmd(job, name, plate_clear, yes) -> None:
     if not (plate_clear and yes):
         raise click.ClickException("starting a print needs the user's approval and a clear plate: --plate-clear --yes")
     receipt = out / "print-receipt.json"
-    if receipt.exists():
-        raise click.ClickException(f"{receipt} exists: this package was already sent. Check the printer instead of resending")
+    if receipt.exists() and not reprint:
+        raise click.ClickException(f"{receipt} exists: this package was already sent. Check the printer instead of resending; "
+                                   "for a print the user asked to repeat, add --reprint")
     s = Settings.load()
     p = Printer(s)
     st = preflight(p, package)
     click.echo(f"preflight ok: {st.summary()}")
+    if receipt.exists():
+        archived = receipt.with_name(f"print-receipt-{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime(receipt.stat().st_mtime))}.json")
+        receipt.rename(archived)
+        click.echo(f"reprint: previous receipt kept as {archived.name}")
     size = p.upload(package)
     click.echo(f"uploaded {size} bytes")
     preflight(p, package)
@@ -534,39 +540,46 @@ def camera(dest) -> None:
 
 @main.command()
 @click.option("--until-layer", type=int, default=0, help="Stop at this layer (checkpoint); 0 = until the job ends.")
-@click.option("--every", type=int, default=90, show_default=True, help="Seconds between status reads.")
+@click.option("--every", type=int, default=30, show_default=True, help="Seconds between checks (local; no extra printer traffic).")
+@click.option("--full-every", type=int, default=300, show_default=True,
+              help="Seconds between full status requests to the printer. Keep 300 or more on P1/A1 printers.")
 @click.option("--max-minutes", type=int, default=600, show_default=True)
-def watch(until_layer, every, max_minutes) -> None:
-    """Read-only watcher: exits when the job ends, on an error/HMS, part fan 0 while printing, or a checkpoint."""
-    from .printer import Printer
-    p, end, fails = Printer(), time.time() + max_minutes * 60, 0
-    while time.time() < end:
-        try:
-            st = p.status()
-            fails = 0
-            click.echo(json.dumps({"t": time.strftime("%H:%M:%S"), **{k: getattr(st, k) for k in
-                                   ("state", "percent", "layer", "total_layers", "part_fan", "print_error")}, "hms": len(st.hms)}), nl=True)
-            running = st.state == "RUNNING" and st.percent < 100  # PREPARE still shows the previous job's layer
-            if st.state not in ("RUNNING", "PREPARE", "SLICING"):
-                click.echo(f"EXIT job state {st.state}")
-                return
-            if st.print_error or st.hms:
-                click.echo("EXIT error or HMS alert")
-                return
-            if running and st.layer >= 8 and st.part_fan == "0":
-                click.echo("EXIT part fan reads 0 while printing (check the toolhead cover/fan)")
-                return
-            if until_layer and running and st.layer >= until_layer:
-                click.echo(f"EXIT checkpoint layer {st.layer}")
-                return
-        except Exception as exc:  # noqa: BLE001
-            fails += 1
-            click.echo(f"read failed: {type(exc).__name__}")
-            if fails >= 5:
-                click.echo("EXIT repeated read failures")
-                return
-        time.sleep(every)
+def watch(until_layer, every, full_every, max_minutes) -> None:
+    """Read-only watcher over one printer connection: exits when the job ends, on an error/HMS,
+    part fan 0 while printing, a checkpoint, or when the printer stops reporting."""
+    import signal
 
+    from .printer import Printer, status_from
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # close the connection cleanly when stopped
+    last, t0 = None, time.time()
+    for st_raw, silent_s in Printer().monitor(max_minutes * 60, check_s=every, full_s=full_every):
+        if not st_raw.get("gcode_state"):
+            if time.time() - t0 < 120:
+                continue
+            click.echo("EXIT no report from the printer (check it is on and in LAN mode)")
+            return
+        if silent_s is not None and silent_s > max(full_every * 2, 600):
+            click.echo(f"EXIT the printer has not reported for {silent_s / 60:.0f} min")
+            return
+        st = status_from(st_raw)
+        row = {k: getattr(st, k) for k in ("state", "percent", "layer", "total_layers", "part_fan", "print_error")}
+        if row != last:
+            click.echo(json.dumps({"t": time.strftime("%H:%M:%S"), **row, "hms": len(st.hms)}))
+            last = row
+        running = st.state == "RUNNING" and st.percent < 100  # PREPARE still shows the previous job's layer
+        if st.state not in ("RUNNING", "PREPARE", "SLICING"):
+            click.echo(f"EXIT job state {st.state}")
+            return
+        if st.print_error or st.hms:
+            click.echo("EXIT error or HMS alert")
+            return
+        if running and st.layer >= 8 and st.part_fan == "0":
+            click.echo("EXIT part fan reads 0 while printing (check the toolhead cover/fan)")
+            return
+        if until_layer and running and st.layer >= until_layer:
+            click.echo(f"EXIT checkpoint layer {st.layer}")
+            return
+    click.echo("EXIT watch time limit")
 
 if __name__ == "__main__":
     main()
