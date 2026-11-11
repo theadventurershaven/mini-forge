@@ -29,7 +29,7 @@ renders and reports at each review point; keep messages short.
   print, echo or log them; ask the user to paste them into that file themselves.
 - **Detail:** never smooth, remesh, decimate or globally thicken the model. A thin warning means
   "look at which parts carry load", not "thicken". Meshy's thin-wall report is advisory only:
-  its 1.0 mm minimum flags relief that a 0.2 mm nozzle prints fine.
+  its 1.0 mm minimum flags relief that a 0.2 mm nozzle prints fine. Don't describe it as an error.
 - **Gates are not flags to turn off.** If the support audit or island check fails, change the
   model or the supports, never the check.
 - **Supports:** never turn off "critical regions only" and never use `tree_strong`; both have
@@ -42,6 +42,11 @@ renders and reports at each review point; keep messages short.
   case. Use it only when a slice has already failed without it, and ask first in those words:
   "supports would also stand on the figure, under the [cloak], and may be very hard to remove".
 
+- **Updates:** when the user asks to update mini-forge, run
+  `claude plugin marketplace update mini-forge-marketplace` and
+  `claude plugin update mini-forge@mini-forge-marketplace`, then tell them to start a new session
+  before going on: this session keeps running the old version's skill and tools. If any command
+  prints "this session runs mini-forge ... from an older folder", say the same.
 - **First run:** the first `mini-forge` command on a computer downloads its Python packages (a
   minute or two). Before running any `mini-forge` command for the first time, say so in one line
   and wait for the user's OK.
@@ -85,7 +90,8 @@ renders and reports at each review point; keep messages short.
      Chrome extension connected to this session (https://code.claude.com/docs/en/chrome); if the
      browser tools aren't available, say that and fall back to by hand. Say first that you will work in a new
      tab of their own browser, in their signed-in Gemini account, and touch nothing else. Open
-     gemini.google.com/app in a new tab, start a new chat, choose the "Pro" model, attach their
+     gemini.google.com/app in a new tab, start a new chat, open the model menu and switch it to
+     "Pro" (Gemini usually opens on a faster model such as Flash; check the menu shows Pro before sending), attach their
      image if any (with the browser upload tool, or ask them to attach it in that tab), and send
      the prompt (Enter sends, so join its paragraphs with spaces). Pictures take about a minute;
      retry once on an error. Review the picture in the tab yourself and send the follow-up edits
@@ -141,6 +147,9 @@ each with notes on how well it has been tested):
 - `detail-0.2-stout` (0.2 mm nozzle, default): stout trees from the plate; best tested.
 - `detail-0.2-slim`: finer trees, only when supports stay short (the audit enforces it).
 - `standard-0.4` (0.4 mm nozzle, default): faster prints for creatures and rank-and-file.
+- `standard-0.4-stout` (0.4 mm): the same, with stout two-wall trees still from the plate only.
+  Use it when `slice` suggests it (slim trees too tall, usually figures over about 35 mm); no
+  need to ask, since nothing stands on the base or figure.
 - `creature-0.4-stout` (0.4 mm): stout two-wall trees that may root on the base top, for high,
   far-reaching overhangs (tentacles, raised claws). Ask the user first; thick trees around small
   faces and hands are harder to remove.
@@ -169,13 +178,20 @@ With LAN printing, after the user's yes and plate-clear statement:
 `mini-forge print <job> --plate-clear --yes`. It refuses unless the printer is idle with no
 error, the nozzle matches the package, and the AMS slot has filament.
 
-Then watch: `mini-forge watch --until-layer 40` (run it in the background; it keeps one printer
-connection open and asks for a full report only every 5 minutes, since frequent reconnects have
-frozen a P1S mid-print). Do not run `status` while a watch is running. Take a camera frame with
-`mini-forge camera minis/<job>/first-layers.jpg`, then again near halfway and at the end. A part
-that comes loose raises no printer error, so the camera checks matter. On a clear failure,
-tell the user; pause only if they ask (`status`, then the printer screen). Keep one printer
-connection at a time.
+Then watch: `mini-forge watch --job <job>` (run it in the background; it keeps one printer
+connection open, asks for a full report only every 5 minutes, since frequent reconnects have
+frozen a P1S mid-print, and writes every event, including pauses, to
+`minis/<job>/watch-log.jsonl`; read that log rather than filtering the output). Do not run
+`status` while a watch is running. Keep one printer connection at a time.
+
+Camera frames are opt-in. A part that comes loose raises no printer error, and a frame is the
+only way to see it, but each frame is another connection: on a P1S two frames timed out during
+a print that froze. Ask once: "Do you want me to take camera frames during the print (after the
+first layers, halfway and at the end)? They're the only way I can spot a part coming loose, but
+they add printer connections." Only after a yes, stop the watch, take one frame with
+`mini-forge camera minis/<job>/<name>.jpg`, then restart the watch; never both at once. Without
+a yes, suggest the user looks in at those points. On a clear failure, tell the user; pause only
+if they ask (`status`, then the printer screen).
 
 ## 6. Afterwards
 

@@ -309,3 +309,29 @@ def test_fitting_filament_swaps_another_printers_profile(tmp_path):
     assert fitting_filament(tmp_path, "Brand PLA", "Bambu Lab P1S") == "Brand PLA @BBL X1C"
     with pytest.raises(ValueError):
         fitting_filament(tmp_path, "Other PLA @BBL X1C", "Bambu Lab P1S")
+
+
+def test_installed_elsewhere_notices_a_session_left_on_an_old_version(monkeypatch, tmp_path):
+    from mini_forge import cli
+    cache = tmp_path / "plugins" / "cache" / "mini-forge-marketplace" / "mini-forge"
+    old, new = cache / "0.3.4", cache / "0.4.0"
+    cache.mkdir(parents=True)
+    registry = {"plugins": {"mini-forge@mini-forge-marketplace": [{"installPath": str(new)}]}}
+    (tmp_path / "plugins" / "installed_plugins.json").write_text(json.dumps(registry), encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setattr(cli, "PLUGIN_ROOT", old.resolve())
+    assert cli.installed_elsewhere() == str(new.resolve())
+    monkeypatch.setattr(cli, "PLUGIN_ROOT", new.resolve())
+    assert cli.installed_elsewhere() is None
+    monkeypatch.setattr(cli, "PLUGIN_ROOT", tmp_path / "checkout")
+    assert cli.installed_elsewhere() is None
+
+
+def test_every_overlay_keeps_supports_off_the_figure_unless_it_says_so():
+    from mini_forge.profiles import overlays
+    ov = overlays()
+    assert ov["standard-0.4-stout"]["support_on_build_plate_only"] == "1"
+    assert ov["standard-0.4-stout"]["tree_support_wall_count"] == "2"
+    for name, o in ov.items():
+        assert o["support_critical_regions_only"] == "1" and o["support_style"] != "tree_strong", name
+        assert float(o["support_bottom_z_distance"]) >= 0.48, name

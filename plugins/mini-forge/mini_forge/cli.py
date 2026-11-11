@@ -17,7 +17,7 @@ from pathlib import Path
 
 import click
 
-from . import __version__
+from . import PLUGIN_ROOT, __version__
 from .config import BED_TYPES, Settings, config_file, profile_dir, system_profile_dir
 
 
@@ -50,10 +50,35 @@ def update_job(d: Path, **values) -> dict:
     return data
 
 
+def installed_elsewhere() -> str | None:
+    """The installed plugin folder, when this session still runs an older one after an update.
+
+    Claude Code keeps each version in its own cache folder and a session keeps the folder its
+    skill was loaded from, so after `claude plugin update` the old code goes on running.
+    """
+    if "cache" not in PLUGIN_ROOT.parts:
+        return None  # a checkout, not an installed plugin
+    registry = Path(os.getenv("CLAUDE_CONFIG_DIR") or Path.home() / ".claude") / "plugins" / "installed_plugins.json"
+    try:
+        entries = json.loads(registry.read_text(encoding="utf-8")).get("plugins", {})
+    except (OSError, ValueError):
+        return None
+    for key, rows in entries.items():
+        if key.startswith("mini-forge@"):
+            paths = [Path(r["installPath"]).resolve() for r in rows if r.get("installPath")]
+            if paths and PLUGIN_ROOT not in paths:
+                return str(paths[0])
+    return None
+
+
 @click.group()
 @click.version_option(__version__)
 def main() -> None:
     """Photo or description to a printable tabletop miniature."""
+    newer = installed_elsewhere()
+    if newer:
+        click.echo(f"note: this session runs mini-forge {__version__} from an older folder; an update is installed at "
+                   f"{newer}. Tell the user to start a new session so the updated skill and tools load.", err=True)
 
 
 # ---- setup -------------------------------------------------------------------------------
@@ -360,7 +385,10 @@ def convert(job, image, resolution, print_height, yes) -> None:
     if not (d / "analyze.json").exists():
         analysis = client.analyze(result["_task_id"], "fdm", print_height)
         write_json(d / "analyze.json", analysis)
-        click.echo(f"Meshy thin-wall report (advisory): {json.dumps(thin_walls(analysis))}")
+        report = thin_walls(analysis)
+        if isinstance(report, dict):  # its "status" reads "error" whenever anything is under 1 mm, which is not a failure
+            report = {k: v for k, v in report.items() if k != "status"}
+        click.echo(f"Meshy thin-wall report (advisory only, not a failure; its 1 mm minimum flags fine relief): {json.dumps(report)}")
     update_job(d, glb_sha256=sha256(glb), meshy_task=result["_task_id"], credits_spent=ledger.total)
     click.echo(f"saved {glb} | credits spent on this job: {ledger.total} | unresolved: {sorted(ledger.unresolved)}")
 
@@ -461,7 +489,7 @@ def _parse_set(values: tuple[str, ...]) -> dict:
 
 @main.command("slice")
 @click.argument("job")
-@click.option("--overlay", default=None, help="Profile overlay (detail-0.2-stout, detail-0.2-slim, standard-0.4).")
+@click.option("--overlay", default=None, help="Profile overlay (detail-0.2-stout, detail-0.2-slim, standard-0.4, standard-0.4-stout, creature-0.4-stout).")
 @click.option("--copies", type=int, default=1, show_default=True)
 @click.option("--set", "sets", multiple=True, help="Extra slicer setting for this job, key=value (repeatable).")
 @click.option("--name", default=None, help="Output name (default: the job name).")
@@ -532,6 +560,10 @@ def slice_cmd(job, overlay, copies, sets, name, no_paint, accept_free_columns) -
     click.echo(f"bed temperature commands: {beds} (check they match your plate)")
     click.echo(f"support audit: {'PASS' if audit.passed else 'FAIL'} ({audit.columns} columns, tallest {audit.tallest_mm} mm)"
                + "".join(f"\n  - {x}" for x in audit.reasons))
+    stout = {"standard-0.4": "standard-0.4-stout", "detail-0.2-slim": "detail-0.2-stout"}.get(overlay)
+    if stout and any("for slim trees" in x and "tall" in x for x in audit.reasons):
+        click.echo(f"suggestion: slim trees are too tall here; re-slice with --overlay {stout} "
+                   "(stout two-wall trees, still from the build plate only)")
     if audit.base_root_share > BASE_ROOT_NOTE_SHARE:
         click.echo(f"note: {audit.base_root_share:.0%} of support roots start on the base top; they come off, but can mark it")
     if audit.figure_roots:
@@ -606,42 +638,51 @@ def camera(dest) -> None:
 @click.option("--full-every", type=int, default=300, show_default=True,
               help="Seconds between full status requests to the printer. Keep 300 or more on P1/A1 printers.")
 @click.option("--max-minutes", type=int, default=600, show_default=True)
-def watch(until_layer, every, full_every, max_minutes) -> None:
+@click.option("--job", default=None, help="Also append every event to minis/<job>/watch-log.jsonl.")
+def watch(until_layer, every, full_every, max_minutes, job) -> None:
     """Read-only watcher over one printer connection: exits when the job ends, on an error/HMS,
     part fan 0 while printing, a checkpoint, or when the printer stops reporting."""
     import signal
 
     from .printer import Printer, status_from
-    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))  # close the connection cleanly when stopped
+    log = job_dir(job) / "watch-log.jsonl" if job else None
+
+    def emit(event: dict) -> None:
+        line = json.dumps({"utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **event})
+        click.echo(line)
+        if log:  # kept whole, so a filtered or lost console output can be checked afterwards
+            with log.open("a", encoding="utf-8") as f:
+                f.write(line + "\n")
+
+    def stop(*_) -> None:
+        emit({"exit": "watch stopped"})
+        sys.exit(0)  # close the connection cleanly
+
+    signal.signal(signal.SIGTERM, stop)
     last, t0 = None, time.time()
+    emit({"start": f"watch until layer {until_layer or 'the end'}, full report every {full_every} s"})
     for st_raw, silent_s in Printer().monitor(max_minutes * 60, check_s=every, full_s=full_every):
         if not st_raw.get("gcode_state"):
             if time.time() - t0 < 120:
                 continue
-            click.echo("EXIT no report from the printer (check it is on and in LAN mode)")
-            return
+            return emit({"exit": "no report from the printer (check it is on and in LAN mode)"})
         if silent_s is not None and silent_s > max(full_every * 2, 600):
-            click.echo(f"EXIT the printer has not reported for {silent_s / 60:.0f} min")
-            return
+            return emit({"exit": f"the printer has not reported for {silent_s / 60:.0f} min"})
         st = status_from(st_raw)
         row = {k: getattr(st, k) for k in ("state", "percent", "layer", "total_layers", "part_fan", "print_error")}
         if row != last:
-            click.echo(json.dumps({"t": time.strftime("%H:%M:%S"), **row, "hms": len(st.hms)}))
+            emit({**row, "hms": st.hms})
             last = row
         running = st.state == "RUNNING" and st.percent < 100  # PREPARE still shows the previous job's layer
         if st.state not in ("RUNNING", "PREPARE", "SLICING"):
-            click.echo(f"EXIT job state {st.state}")
-            return
+            return emit({"exit": f"job state {st.state}"})
         if st.print_error or st.hms:
-            click.echo("EXIT error or HMS alert")
-            return
+            return emit({"exit": "error or HMS alert"})
         if running and st.layer >= 8 and st.part_fan == "0":
-            click.echo("EXIT part fan reads 0 while printing (check the toolhead cover/fan)")
-            return
+            return emit({"exit": "part fan reads 0 while printing (check the toolhead cover/fan)"})
         if until_layer and running and st.layer >= until_layer:
-            click.echo(f"EXIT checkpoint layer {st.layer}")
-            return
-    click.echo("EXIT watch time limit")
+            return emit({"exit": f"checkpoint layer {st.layer}"})
+    emit({"exit": "watch time limit"})
 
 if __name__ == "__main__":
     main()

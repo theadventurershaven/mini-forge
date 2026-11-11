@@ -77,7 +77,7 @@ around hands and faces.
 | On build plate only | off | **on** |
 | Support critical regions only | off | **on** |
 | Top Z distance | 0.12 mm (one layer) | **0.24 mm** (two layers) |
-| Bottom Z distance | 0.12 mm | **0.24 mm** |
+| Bottom Z distance | 0.12 mm | **0.48 mm** (where supports land on the model) |
 | Support/object XY distance | 0.35 mm | **0.8 mm** (keeps trees off hands and faces) |
 | Support/object first layer gap | | **0.5 mm** |
 | Tree branch diameter | 2 mm | **1.2 mm** |
@@ -88,8 +88,8 @@ around hands and faces.
 For 0.2 mm nozzle heroes: 0.06 mm layers, top Z distance 0.16 mm, the rest the same.
 
 Avoid the "Strong" tree style and turning off "critical regions only": both pile on supports
-that are hard to remove. Tall supports (over about 20 mm) on a slim tree can topple; use 2 mm
-branches with 2 wall loops for those.
+that are hard to remove. Tall slim trees can topple (over about 20 mm on a 0.2 mm nozzle, 30 mm on
+a 0.4); use 2 mm branches with 2 wall loops for those (the "stout trees, plate only" preset).
 
 ### 6. The layer preview check
 
@@ -107,15 +107,15 @@ comes loose raises no error on the printer; it shows as strands spreading outwar
 Install (see the [README](../README.md)), then ask: *"make a mini of a hunched plague rat-man
 with a rusted cleaver"*. Claude:
 
-1. writes the picture prompt (you paste it into Gemini), or makes the picture with Meshy if you
-   prefer, and reviews it for mid-air features;
+1. writes the picture prompt (you paste it into Gemini), drives Gemini in your browser if you
+   agree, or makes the picture with Meshy if you prefer, and reviews it for mid-air features;
 2. shows the Meshy cost and converts after your yes;
 3. cleans the mesh, measures the figure and scales it by eye height onto a 25 mm base;
 4. lists mid-air starts and features that hang below what they belong to;
 5. slices with tested support profiles, paints supports under mid-air starts, and audits the
    supports (height, lean, how many stand on the base);
 6. with LAN printing set up, sends the print after your yes and your word that the plate is
-   clear, and checks the camera during the print.
+   clear, and watches it (camera frames only if you say yes).
 
 What it cannot do: judge how the supports come off. Tell it afterwards; that is how the profiles
 improve.

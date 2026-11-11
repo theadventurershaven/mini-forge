@@ -81,7 +81,8 @@ off again, and `status` shows which it is.
 involved. Claude shows the cost and waits for your yes.
 
 **LAN printing.** Claude uploads the sliced file to your printer, starts it after your yes and a
-clear plate, and checks it with the printer's camera. It needs LAN Only Mode and Developer Mode
+clear plate, and watches it over one printer connection, logging every event to the job folder.
+Camera frames during the print are taken only if you say yes. It needs LAN Only Mode and Developer Mode
 on the printer and its access code in mini-forge's settings file. Without it, you open the
 `.gcode.3mf` in Bambu Studio and print from there.
 
@@ -127,6 +128,8 @@ mini-forge ships only its own setting changes (`plugins/mini-forge/mini_forge/ov
 with notes on what has actually been printed:
 
 - `standard-0.4`: 0.4 mm nozzle, 0.12 mm layers, slim trees from the build plate. Default.
+- `standard-0.4-stout`: the same with stout two-wall trees, still from the build plate only, for
+  taller figures whose slim trees would be too tall to stand. `slice` suggests it when needed.
 - `creature-0.4-stout`: 0.4 mm, stout trees that may also stand on the base top, for tentacles
   and raised claws. Asks first, since supports on the base can mark it.
 - `detail-0.2-stout` / `detail-0.2-slim`: 0.2 mm nozzle, 0.06 mm layers, for heroes.

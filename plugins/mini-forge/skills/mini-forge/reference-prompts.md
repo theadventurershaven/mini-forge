@@ -137,7 +137,9 @@ Examples that worked:
   to the hand). Ask for it held up: "...raise the [cleaver] so the blade points up and forward
   above the hand...", or along its whole length: "...the flat of the blade lies against the
   [thigh/robe] from hilt to tip...". If Gemini will not do either, a long edge resting flat on
-  the base is the last choice.
+  the base is the last choice. Both printed cleanly: a rat-man's cleaver raised against the
+  shoulder so the blade grows up from the fist, and an upright greatsword with "...the flat of the
+  blade lies against a cloth tabard that hangs down to the base..." (one edit).
 - A strung bow with a free string does not print; ask for it unstrung or held against the body.
 - Wrong limb count: "Keep everything exactly the same, but add [N] more legs so there are exactly
   [COUNT], [N/2] on each side, matching the existing legs."

@@ -14,6 +14,7 @@ VERSION = "2.8.0.5"  # Bambu Studio 02.08 profile version
 TITLES = {
     "standard-0.4": "mini-forge 0.12mm slim trees (0.4 nozzle)",
     "creature-0.4-stout": "mini-forge 0.12mm stout trees (0.4 nozzle)",
+    "standard-0.4-stout": "mini-forge 0.12mm stout trees, plate only (0.4 nozzle)",
     "detail-0.2-slim": "mini-forge 0.06mm slim trees (0.2 nozzle)",
     "detail-0.2-stout": "mini-forge 0.06mm stout trees (0.2 nozzle)",
 }
