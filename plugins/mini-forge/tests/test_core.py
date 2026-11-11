@@ -262,6 +262,37 @@ def test_pictures_adds_without_overwriting_and_lists(monkeypatch, tmp_path):
     assert r.invoke(main, ["pictures", "rat-man", "--add", str(tmp_path / "notes.txt")]).exit_code != 0
 
 
+def test_take_download_is_off_by_default_and_moves_only_a_fresh_gemini_picture(monkeypatch, tmp_path):
+    import os
+    import time
+
+    from click.testing import CliRunner
+
+    from mini_forge.cli import main
+
+    monkeypatch.setenv("MINI_FORGE_JOBS", str(tmp_path / "minis"))
+    monkeypatch.setenv("MINI_FORGE_HOME", str(tmp_path / "home"))
+    dl = tmp_path / "Downloads"
+    dl.mkdir()
+    monkeypatch.setenv("DOWNLOADS_DIR", str(dl))
+    old = dl / "Gemini_Generated_Image_old.png"
+    old.write_bytes(b"PNG old")
+    os.utime(old, (time.time() - 3600, time.time() - 3600))
+    (dl / "tax-return.png").write_bytes(b"PNG private")
+    r = CliRunner()
+    assert r.invoke(main, ["new", "rat-man"]).exit_code == 0
+    off = r.invoke(main, ["pictures", "rat-man", "--take-download", "--wait", "0"])
+    assert off.exit_code != 0 and "off" in off.output
+    assert "ON" in r.invoke(main, ["downloads-pickup", "on"]).output
+    stale = r.invoke(main, ["pictures", "rat-man", "--take-download", "--wait", "0"])
+    assert stale.exit_code != 0  # an hour-old Gemini picture is not taken
+    (dl / "Gemini_Generated_Image_new.png").write_bytes(b"PNG new")
+    out = r.invoke(main, ["pictures", "rat-man", "--take-download", "--wait", "0"]).output
+    assert "Gemini_Generated_Image_new.png" in out and "tax-return" not in out
+    assert sorted(f.name for f in dl.iterdir()) == ["Gemini_Generated_Image_old.png", "tax-return.png"]
+    assert "OFF" in r.invoke(main, ["downloads-pickup", "off"]).output
+
+
 def test_fitting_filament_swaps_another_printers_profile(tmp_path):
     from mini_forge.profiles import fitting_filament
 

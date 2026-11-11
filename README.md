@@ -52,11 +52,38 @@ runs `claude plugin marketplace update mini-forge-marketplace` and
 - **Claude:** a paid plan that includes Claude Code.
 - **Meshy:** API access needs a Pro plan or above (check their pricing page). About **25 credits
   per mini**; about 9 more if you let Meshy make the reference picture.
-- **Reference picture:** free with Gemini or ChatGPT: mini-forge writes the prompt, you paste it
-  and drag the picture into the folder it opens. Optional: with the
-  [Claude in Chrome](https://claude.com/chrome) extension, Claude can run Gemini for you in your
-  browser and review and fix the picture itself. Or let Meshy make it (paid).
+- **Reference picture:** free with Gemini or ChatGPT, or about 9 Meshy credits if Meshy makes it
+  (see [Optional features](#optional-features)).
 - Every paid step shows its cost and waits for your yes.
+
+## Optional features
+
+The basics need only the Claude desktop app, Bambu Studio and a Meshy key. Everything below is
+optional, and the parts that touch your browser, your files or your printer stay off until you
+say yes.
+
+**Reference picture, by hand (the default).** mini-forge writes the prompt; you paste it into
+Gemini or ChatGPT and drag the finished picture into the folder it opens (or into the chat).
+
+**Claude drives Gemini for you.** With the [Claude in Chrome](https://claude.com/chrome)
+extension, Claude opens a new tab in your browser, sends the prompt to Gemini in your account,
+looks at the picture and sends the fixes itself. Claude offers it; it is used only if you agree.
+You still drag the finished picture into the folder, unless you turn on the next feature.
+
+**Downloads pickup (off by default).** With Claude driving Gemini, Claude clicks Gemini's download
+button and mini-forge moves that one picture into the job. It only matches a file named
+`Gemini_Generated_Image_...` saved in the last two minutes; nothing else in your Downloads folder
+is opened, listed or reported. Claude asks before turning it on and runs
+`mini-forge downloads-pickup on` only after your yes; `mini-forge downloads-pickup off` turns it
+off again, and `status` shows which it is.
+
+**Meshy makes the picture (paid).** About 9 Meshy credits per picture or fix, with no browser
+involved. Claude shows the cost and waits for your yes.
+
+**LAN printing.** Claude uploads the sliced file to your printer, starts it after your yes and a
+clear plate, and checks it with the printer's camera. It needs LAN Only Mode and Developer Mode
+on the printer and its access code in mini-forge's settings file. Without it, you open the
+`.gcode.3mf` in Bambu Studio and print from there.
 
 ## Printers
 

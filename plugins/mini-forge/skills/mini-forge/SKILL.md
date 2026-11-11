@@ -74,7 +74,7 @@ renders and reports at each review point; keep messages short.
    description" or "from an image"):
    Offer the routes below in one short line each and let the user choose (default: by hand).
    Never look in the user's Downloads or other folders; pictures reach you only through the
-   job's picture folder or a file the user drags into the chat.
+   job's picture folder, a file the user drags into the chat, or the opt-in Downloads pickup below.
    - **Free, by hand (default):** fill the full prompt and give it to the user to paste into
      Gemini ("Pro" model) or ChatGPT, with their image if any. Run `mini-forge pictures <job> --open`
      so the job's picture folder opens, and ask them to drag the finished picture into it
@@ -89,8 +89,16 @@ renders and reports at each review point; keep messages short.
      image if any (with the browser upload tool, or ask them to attach it in that tab), and send
      the prompt (Enter sends, so join its paragraphs with spaces). Pictures take about a minute;
      retry once on an error. Review the picture in the tab yourself and send the follow-up edits
-     there (step 3). When it is accepted, run `pictures <job> --open` and ask the user to drag the
-     picture from the Gemini tab into the folder.
+     there (step 3). When it is accepted, check `mini-forge downloads-pickup status`:
+     - **On:** click the picture's "Download full size image" button in the tab (the last one is
+       the newest), then run `mini-forge pictures <job> --take-download`.
+     - **Off (the default):** run `pictures <job> --open` and ask the user to drag the picture from
+       the Gemini tab into the folder. The first time in a session, you may offer the optional
+       Downloads pickup in these words: "I can save the picture for you: I'd click Gemini's download
+       button and move only that one file (named Gemini_Generated_Image_...) from your Downloads
+       into the job. Nothing else in Downloads is opened or listed. Want me to turn that on?" Run
+       `mini-forge downloads-pickup on` only after a clear yes, never on your own, and never offer
+       it again after a no. `downloads-pickup off` turns it off.
    - **Automatic (paid):** write the short prompt to `minis/<job>/reference/prompt.txt`, run
      `mini-forge picture <job> --prompt-file ...` for the estimate, then add `--yes` after their yes.
 3. Review the picture at full size (checklist in reference-prompts.md). For each hand, claw,

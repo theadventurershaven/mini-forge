@@ -1,6 +1,6 @@
 [project]
 name = "mini-forge"
-version = "0.3.8"
+version = "0.3.9"
 description = "Photo or description to a printable tabletop miniature: Meshy image-to-3D, local mesh checks, Bambu Studio slicing and support review."
 readme = "README.md"
 license = "MIT"

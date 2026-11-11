@@ -189,10 +189,27 @@ IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
 @click.option("--open", "open_folder", is_flag=True, help="Open the job's picture folder in Finder / File Explorer.")
 @click.option("--add", "add", type=click.Path(exists=True, dir_okay=False),
               help="Copy this picture (e.g. one the user dragged into the chat) into the picture folder.")
-def pictures(job, open_folder, add) -> None:
+@click.option("--take-download", is_flag=True,
+              help="Only if the user turned on downloads pickup: move the Gemini picture just saved to Downloads into the job.")
+@click.option("--wait", type=int, default=60, show_default=True, help="Seconds to wait for the download with --take-download.")
+def pictures(job, open_folder, add, take_download, wait) -> None:
     """List the pictures in a job's reference folder; optionally open it or add one."""
     ref = job_dir(job) / "reference"
     ref.mkdir(exist_ok=True)
+    if take_download:
+        s = Settings.load()
+        if not s.downloads_pickup:
+            raise click.ClickException("downloads pickup is off (the default). Ask the user; only they can turn it on "
+                                       "(mini-forge downloads-pickup on). Otherwise they drag the picture into the folder.")
+        src = _take_gemini_download(s.downloads_dir, wait)
+        dest = ref / src.name
+        n = 2
+        while dest.exists():
+            dest = ref / f"{src.stem}-{n}{src.suffix}"
+            n += 1
+        import shutil
+        shutil.move(str(src), dest)
+        click.echo(f"moved {src.name} from Downloads to {dest}")
     if add:
         src = Path(add)
         if src.suffix.lower() not in IMAGE_SUFFIXES:
@@ -218,6 +235,51 @@ def pictures(job, open_folder, add) -> None:
         click.echo(f"{time.strftime('%Y-%m-%d %H:%M', time.localtime(p.stat().st_mtime))}  {p.name}")
     if not found:
         click.echo(f"no pictures yet in {ref}")
+
+
+GEMINI_DOWNLOAD = "Gemini_Generated_Image_*"
+PICKUP_WINDOW_S = 120
+
+
+def _take_gemini_download(folder: Path, wait_s: int) -> Path:
+    """The newest finished Gemini_Generated_Image_* picture saved in the last PICKUP_WINDOW_S seconds.
+    Only that name pattern is matched; no other file in the folder is opened or reported."""
+    end = time.time() + wait_s
+    while True:
+        now = time.time()
+        fresh = [p for p in folder.glob(GEMINI_DOWNLOAD)
+                 if p.suffix.lower() in IMAGE_SUFFIXES and now - p.stat().st_mtime <= PICKUP_WINDOW_S]
+        if fresh:
+            newest = max(fresh, key=lambda p: p.stat().st_mtime)
+            size = newest.stat().st_size
+            time.sleep(1)
+            if size and newest.stat().st_size == size:  # finished writing
+                return newest
+        if time.time() > end:
+            raise click.ClickException(f"no {GEMINI_DOWNLOAD} picture saved in Downloads in the last "
+                                       f"{PICKUP_WINDOW_S // 60} minutes; download it again or drag it into the folder")
+        time.sleep(2)
+
+
+@main.command("downloads-pickup")
+@click.argument("state", type=click.Choice(["on", "off", "status"]))
+def downloads_pickup(state) -> None:
+    """Optional, off by default: let `pictures --take-download` move Gemini's saved picture from
+    Downloads into the job. Turn on only when the user asks for it; it is recorded in the config."""
+    from dotenv import set_key
+    cfg = config_file()
+    if state != "status":
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        cfg.touch(exist_ok=True)
+        set_key(str(cfg), "DOWNLOADS_PICKUP", state, quote_mode="never")
+        set_key(str(cfg), "DOWNLOADS_PICKUP_CHANGED_UTC", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), quote_mode="never")
+    s = Settings.load()
+    if s.downloads_pickup:
+        click.echo(f"downloads pickup is ON: `pictures --take-download` moves only a file named {GEMINI_DOWNLOAD} saved in "
+                   f"the last {PICKUP_WINDOW_S // 60} minutes from {s.downloads_dir}. Nothing else there is opened, "
+                   "listed or reported. Turn off: mini-forge downloads-pickup off")
+    else:
+        click.echo("downloads pickup is OFF (the default): mini-forge never looks in Downloads")
 
 
 @main.command()

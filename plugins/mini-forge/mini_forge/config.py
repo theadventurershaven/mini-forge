@@ -71,6 +71,8 @@ class Settings:
     printer_serial: str | None
     printer_access_code: str | None
     ams_slot: int                 # 1-4; 0 means the external spool holder
+    downloads_pickup: bool = False  # optional, off unless the user turns it on (`mini-forge downloads-pickup on`)
+    downloads_dir: Path | None = None
 
     @classmethod
     def load(cls) -> Settings:
@@ -87,6 +89,8 @@ class Settings:
             printer_serial=get("PRINTER_SERIAL"),
             printer_access_code=get("PRINTER_ACCESS_CODE"),
             ams_slot=int(get("AMS_SLOT", "1")),
+            downloads_pickup=str(get("DOWNLOADS_PICKUP", "off")).lower() == "on",
+            downloads_dir=Path(get("DOWNLOADS_DIR") or Path.home() / "Downloads"),
         )
 
     def printer_configured(self) -> bool:
